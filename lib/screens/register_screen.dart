@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'login_screen.dart';
-import 'package:careerwise_sample/widgets/custom_button.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -190,7 +189,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
-          color: Color(0xFF2563EB),
+          color: Color(0xFF059669),
           width: 1.5,
         ),
       ),
@@ -251,7 +250,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF0FDF4),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final bool isWide = constraints.maxWidth >= 850;
@@ -316,9 +315,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1D4ED8),
-            Color(0xFF2563EB),
-            Color(0xFF3B82F6),
+            Color(0xFF065F46),
+            Color(0xFF059669),
+            Color(0xFF10B981),
           ],
         ),
       ),
@@ -373,7 +372,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: const Icon(
                       Icons.person_add_alt_1_rounded,
                       size: 55,
-                      color: Color(0xFF2563EB),
+                      color: Color(0xFF059669),
                     ),
                   ),
 
@@ -498,9 +497,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1D4ED8),
-            Color(0xFF2563EB),
-            Color(0xFF3B82F6),
+            Color(0xFF065F46),
+            Color(0xFF059669),
+            Color(0xFF10B981),
           ],
         ),
         borderRadius: BorderRadius.only(
@@ -527,7 +526,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: const Icon(
               Icons.person_add_alt_1_rounded,
               size: 40,
-              color: Color(0xFF2563EB),
+              color: Color(0xFF059669),
             ),
           ),
 
@@ -572,6 +571,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Navigator.pop(context);
           },
           style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF059669),
             padding: EdgeInsets.zero,
           ),
           icon: const Icon(
@@ -580,6 +580,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           label: const Text(
             'Back to Login',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
 
@@ -795,11 +796,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 55,
-                child: CustomButton(
-                  text: isLoading
-                      ? 'Creating Account...'
-                      : 'Create Account',
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shadowColor: const Color(0xFF059669).withValues(alpha: 0.35),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                   onPressed: isLoading ? null : register,
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          'Create Account',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -842,7 +865,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF2563EB),
+                    color: Color(0xFF059669),
                   ),
                 ),
               ),
