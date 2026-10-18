@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:careerwise_sample/model/job.dart';
 import 'package:careerwise_sample/services/job_service.dart';
 
+import 'admin_profile_screen.dart';
 import 'job_details_screen.dart';
 import 'jobs_screen.dart';
 import 'career_advisor_screen.dart';
@@ -16,14 +17,39 @@ import 'profile_screen.dart';
 import 'notification_settings_screen.dart';
 import 'notification_history_screen.dart';
 
+// ================================================================
+// DYNAMIC THEME COLOR PALETTE (PREMIUM GREEN THEME)
+// ================================================================
+
+class _HomeColors {
+  final bool isDark;
+
+  const _HomeColors({required this.isDark});
+
+  // Backgrounds:
+  // Light: Soft emerald-mint tint (#F0FDF4)
+  // Dark: Deep luxurious obsidian forest green (#0A140F)
+  Color get pageBg => isDark ? const Color(0xFF0A140F) : const Color(0xFFF0FDF4);
+  Color get cardBg => isDark ? const Color(0xFF13231B) : Colors.white;
+  Color get cardBorder => isDark ? const Color(0xFF1E382A) : const Color(0xFFD1FAE5);
+  Color get cardSurface => isDark ? const Color(0xFF0F1E17) : const Color(0xFFF8FAF9);
+
+  // Brand / Emerald Accent Colors
+  Color get primary => isDark ? const Color(0xFF10B981) : const Color(0xFF059669);
+  Color get primaryAccent => isDark ? const Color(0xFF34D399) : const Color(0xFF10B981);
+  Color get primaryDark => isDark ? const Color(0xFF059669) : const Color(0xFF047857);
+
+  // Text Colors
+  Color get textPrimary => isDark ? const Color(0xFFF0FDF4) : const Color(0xFF0F241B);
+  Color get textSecondary => isDark ? const Color(0xFFA7C1B3) : const Color(0xFF4B6354);
+  Color get textMuted => isDark ? const Color(0xFF6B7280) : const Color(0xFF94A3B8);
+
+  // Dividers & Badges
+  Color get divider => isDark ? const Color(0xFF1C3426) : const Color(0xFFE5EFE9);
+}
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  static const Color _primary = Color(0xFF2563EB);
-  static const Color _indigo = Color(0xFF4F46E5);
-  static const Color _dark = Color(0xFF111827);
-  static const Color _grey = Color(0xFF6B7280);
-  static const Color _border = Color(0xFFE5E7EB);
 
   void _open(BuildContext context, Widget page) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
@@ -38,71 +64,93 @@ class HomeScreen extends StatelessWidget {
         : 'Career Explorer';
 
     final String initial =
-    userName.isNotEmpty ? userName[0].toUpperCase() : 'C';
+        userName.isNotEmpty ? userName[0].toUpperCase() : 'C';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
-      bottomNavigationBar: _buildBottomNav(context),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            MediaQuery.of(context).size.width >= 700 ? 32 : 16,
-            14,
-            MediaQuery.of(context).size.width >= 700 ? 32 : 16,
-            24,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context, initial),
-                  const SizedBox(height: 16),
-                  _buildHero(context, userName),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(
-                    'Quick Actions',
-                    trailing: 'Your career journey, in one place',
+    return ValueListenableBuilder<bool>(
+      valueListenable: AdminThemeManager.isDarkMode,
+      builder: (context, isDark, _) {
+        final colors = _HomeColors(isDark: isDark);
+
+        return Scaffold(
+          backgroundColor: colors.pageBg,
+          bottomNavigationBar: _buildBottomNav(context, colors),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                MediaQuery.of(context).size.width >= 700 ? 32 : 16,
+                14,
+                MediaQuery.of(context).size.width >= 700 ? 32 : 16,
+                24,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(context, initial, colors),
+                      const SizedBox(height: 18),
+                      _buildHero(context, userName, colors),
+                      const SizedBox(height: 26),
+                      _buildSectionTitle(
+                        'Quick Actions',
+                        colors,
+                        trailing: 'Your career journey, in one place',
+                      ),
+                      const SizedBox(height: 14),
+                      _buildQuickActions(context, colors),
+                      const SizedBox(height: 28),
+                      _buildFeaturedHeader(context, colors),
+                      const SizedBox(height: 14),
+                      _buildFeaturedJobs(colors),
+                      const SizedBox(height: 22),
+                      _buildCtaBanner(context, colors),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _buildQuickActions(context),
-                  const SizedBox(height: 24),
-                  _buildFeaturedHeader(context),
-                  const SizedBox(height: 12),
-                  _buildFeaturedJobs(),
-                  const SizedBox(height: 20),
-                  _buildCtaBanner(context),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   // ================================================================
   // HEADER
   // ================================================================
-  Widget _buildHeader(BuildContext context, String initial) {
+  Widget _buildHeader(
+    BuildContext context,
+    String initial,
+    _HomeColors colors,
+  ) {
     return Row(
       children: [
+        // App Logo Icon
         Container(
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_primary, Color(0xFF7C3AED)],
+            gradient: LinearGradient(
+              colors: colors.isDark
+                  ? const [Color(0xFF047857), Color(0xFF059669)]
+                  : const [Color(0xFF059669), Color(0xFF10B981)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: colors.primary.withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: const Icon(Icons.auto_awesome, color: Colors.white, size: 26),
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -111,63 +159,129 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: _dark,
+                  color: colors.textPrimary,
+                  letterSpacing: -0.4,
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
                 'Your AI Career Companion',
-                style: TextStyle(fontSize: 12, color: _grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
         ),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                onPressed: () => _open(
-                    context, const NotificationHistoryScreen()),
-                tooltip: 'Notification history',
-                icon: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: Color(0xFF374151),
-                ),
-              ),
-            ),
 
-          ],
+        // 1. Theme Toggle Button (Sun / Moon)
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: colors.cardBg,
+            shape: BoxShape.circle,
+            border: Border.all(color: colors.cardBorder, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: (colors.isDark ? Colors.black : const Color(0xFF059669))
+                    .withValues(alpha: colors.isDark ? 0.3 : 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: IconButton(
+            tooltip: colors.isDark
+                ? 'Switch to Light Theme'
+                : 'Switch to Dark Theme',
+            padding: EdgeInsets.zero,
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              transitionBuilder: (child, animation) {
+                return RotationTransition(
+                  turns: child.key == const ValueKey('dark_icon')
+                      ? Tween<double>(begin: 0.75, end: 1.0).animate(animation)
+                      : Tween<double>(begin: 0.25, end: 0.0).animate(animation),
+                  child: ScaleTransition(
+                    scale: animation,
+                    child: child,
+                  ),
+                );
+              },
+              child: colors.isDark
+                  ? const Icon(
+                      Icons.wb_sunny_rounded,
+                      key: ValueKey('dark_icon'),
+                      color: Color(0xFFFDE047),
+                      size: 21,
+                    )
+                  : Icon(
+                      Icons.nightlight_round,
+                      key: const ValueKey('light_icon'),
+                      color: colors.primary,
+                      size: 21,
+                    ),
+            ),
+            onPressed: () {
+              AdminThemeManager.isDarkMode.value =
+                  !AdminThemeManager.isDarkMode.value;
+            },
+          ),
         ),
+
         const SizedBox(width: 10),
+
+        // 2. Notification History Button
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: colors.cardBg,
+            shape: BoxShape.circle,
+            border: Border.all(color: colors.cardBorder, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: (colors.isDark ? Colors.black : const Color(0xFF059669))
+                    .withValues(alpha: colors.isDark ? 0.3 : 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: IconButton(
+            onPressed: () => _open(context, const NotificationHistoryScreen()),
+            tooltip: 'Notification history',
+            icon: Icon(
+              Icons.notifications_none_rounded,
+              color: colors.textPrimary,
+              size: 22,
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 10),
+
+        // 3. Profile Avatar
         GestureDetector(
           onTap: () => _open(context, const ProfileScreen()),
           child: Container(
-            width: 46,
-            height: 46,
-            padding: const EdgeInsets.all(3),
-            decoration: const BoxDecoration(
+            width: 44,
+            height: 44,
+            padding: const EdgeInsets.all(2.5),
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFFC7D2FE),
+              border: Border.all(color: colors.primary, width: 1.5),
             ),
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [_primary, _indigo],
+                  colors: colors.isDark
+                      ? const [Color(0xFF047857), Color(0xFF059669)]
+                      : const [Color(0xFF059669), Color(0xFF10B981)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -176,7 +290,7 @@ class HomeScreen extends StatelessWidget {
               child: Text(
                 initial,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -189,18 +303,21 @@ class HomeScreen extends StatelessWidget {
   }
 
   // ================================================================
-  // HERO BANNER  (responsive: mobile + tablet + desktop)
+  // HERO BANNER (LUSH EMERALD MINT GRADIENT)
   // ================================================================
   static const String _heroImage = 'assets/images/hero_student.jpg';
 
-  Widget _buildHero(BuildContext context, String userName) {
+  Widget _buildHero(
+    BuildContext context,
+    String userName,
+    _HomeColors colors,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double w = constraints.maxWidth;
         final bool wide = w >= 700;
 
         final double height = wide ? 250 : 190;
-        // image takes a fixed share of the banner width
         final double imageWidth = wide ? w * 0.36 : w * 0.36;
 
         return Container(
@@ -209,19 +326,33 @@ class HomeScreen extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFFDBEAFE),
-                Color(0xFFC7D2FE),
-                Color(0xFFDDD6FE),
-              ],
+            border: Border.all(color: colors.cardBorder, width: 1.2),
+            gradient: LinearGradient(
+              colors: colors.isDark
+                  ? const [
+                      Color(0xFF064E3B),
+                      Color(0xFF047857),
+                      Color(0xFF065F46),
+                    ]
+                  : const [
+                      Color(0xFFE6F9EE),
+                      Color(0xFFD1FAE5),
+                      Color(0xFFA7F3D0),
+                    ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: colors.primary.withValues(alpha: colors.isDark ? 0.3 : 0.15),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Stack(
             children: [
-              // Image fills the whole right side and fades into the gradient
+              // Image fills the right side and fades smoothly
               Positioned(
                 top: 0,
                 bottom: 0,
@@ -239,18 +370,18 @@ class HomeScreen extends StatelessWidget {
                     _heroImage,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
-                    errorBuilder: (_, __, ___) => Center(
+                    errorBuilder: (context, error, stackTrace) => Center(
                       child: Icon(
                         Icons.school_rounded,
                         size: wide ? 110 : 80,
-                        color: _primary.withValues(alpha: 0.35),
+                        color: colors.primary.withValues(alpha: 0.35),
                       ),
                     ),
                   ),
                 ),
               ),
 
-              // Text
+              // Text & Call to Action
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   wide ? 32 : 18,
@@ -268,8 +399,10 @@ class HomeScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: wide ? 17 : 14,
-                        fontWeight: FontWeight.w500,
-                        color: _dark,
+                        fontWeight: FontWeight.w600,
+                        color: colors.isDark
+                            ? const Color(0xFFD1FAE5)
+                            : const Color(0xFF065F46),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -281,7 +414,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: wide ? 34 : 22,
                           fontWeight: FontWeight.w800,
-                          color: _dark,
+                          color: colors.textPrimary,
                           height: 1.15,
                         ),
                       ),
@@ -293,27 +426,28 @@ class HomeScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: wide ? 15 : 12,
-                        color: _grey,
+                        color: colors.textSecondary,
                         height: 1.35,
                       ),
                     ),
                     SizedBox(height: wide ? 18 : 12),
                     GestureDetector(
-                      onTap: () =>
-                          _open(context, const CareerAdvisorScreen()),
+                      onTap: () => _open(context, const CareerAdvisorScreen()),
                       child: Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: wide ? 20 : 14,
                           vertical: wide ? 13 : 10,
                         ),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [_primary, _indigo],
+                          gradient: LinearGradient(
+                            colors: colors.isDark
+                                ? const [Color(0xFF059669), Color(0xFF047857)]
+                                : const [Color(0xFF059669), Color(0xFF10B981)],
                           ),
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: _primary.withValues(alpha: 0.3),
+                              color: colors.primary.withValues(alpha: 0.35),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -327,9 +461,9 @@ class HomeScreen extends StatelessWidget {
                                 'Explore Career Paths',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: wide ? 14 : 12,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -357,7 +491,11 @@ class HomeScreen extends StatelessWidget {
   // ================================================================
   // SECTION TITLE
   // ================================================================
-  Widget _buildSectionTitle(String title, {String? trailing}) {
+  Widget _buildSectionTitle(
+    String title,
+    _HomeColors colors, {
+    String? trailing,
+  }) {
     return Row(
       children: [
         Column(
@@ -365,18 +503,21 @@ class HomeScreen extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.w800,
-                color: _dark,
+                color: colors.textPrimary,
+                letterSpacing: -0.3,
               ),
             ),
             const SizedBox(height: 4),
             Container(
-              width: 26,
+              width: 28,
               height: 3,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_primary, _indigo]),
+                gradient: LinearGradient(
+                  colors: [colors.primary, colors.primaryAccent],
+                ),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -390,11 +531,18 @@ class HomeScreen extends StatelessWidget {
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: _grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.textSecondary,
+              ),
             ),
           ),
           const SizedBox(width: 3),
-          const Icon(Icons.arrow_forward_rounded, size: 14, color: _grey),
+          Icon(
+            Icons.arrow_forward_rounded,
+            size: 14,
+            color: colors.textSecondary,
+          ),
         ],
       ],
     );
@@ -403,60 +551,59 @@ class HomeScreen extends StatelessWidget {
   // ================================================================
   // QUICK ACTIONS
   // ================================================================
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, _HomeColors colors) {
     final items = <Widget>[
       _quickAction(
         context,
         icon: Icons.smart_toy_outlined,
         title: 'AI Career Advisor',
         subtitle: 'Get personalized career recommendations',
-        color: _primary,
-        tint: const Color(0xFFEFF6FF),
+        color: colors.isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
         page: const CareerAdvisorScreen(),
+        colors: colors,
       ),
       _quickAction(
         context,
         icon: Icons.work_outline_rounded,
         title: 'Browse Jobs',
         subtitle: 'Find opportunities that match you',
-        color: const Color(0xFF7C3AED),
-        tint: const Color(0xFFF5F3FF),
+        color: colors.isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1),
         page: const JobsScreen(),
+        colors: colors,
       ),
       _quickAction(
         context,
         icon: Icons.history_rounded,
         title: 'Career History',
         subtitle: 'View your past recommendations',
-        color: const Color(0xFF10B981),
-        tint: const Color(0xFFECFDF5),
+        color: colors.isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488),
         page: const CareerHistoryScreen(),
+        colors: colors,
       ),
       _quickAction(
         context,
         icon: Icons.description_outlined,
         title: 'My Applications',
         subtitle: 'Track your job applications',
-        color: const Color(0xFFF97316),
-        tint: const Color(0xFFFFF7ED),
+        color: colors.isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C),
         page: const MyApplicationsScreen(),
+        colors: colors,
       ),
       _quickAction(
         context,
         icon: Icons.tune_rounded,
         title: 'Notification Settings',
         subtitle: 'Manage your alerts and reminders',
-        color: const Color(0xFF0D9488),
-        tint: const Color(0xFFF0FDFA),
+        color: colors.isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
         page: const NotificationSettingsScreen(),
+        colors: colors,
       ),
     ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // very narrow phones -> 2 x 2 grid, otherwise 4 in a row
         final int columns = constraints.maxWidth < 600 ? 2 : 4;
-        final double gap = constraints.maxWidth >= 700 ? 14 : 8;
+        final double gap = constraints.maxWidth >= 700 ? 14 : 10;
 
         final rows = <Widget>[];
         for (int i = 0; i < items.length; i += columns) {
@@ -483,67 +630,97 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _quickAction(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String subtitle,
-        required Color color,
-        required Color tint,
-        required Widget page,
-      }) {
-    return GestureDetector(
-      onTap: () => _open(context, page),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
-        decoration: BoxDecoration(
-          color: tint,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.12)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Icon(icon, color: Colors.white, size: 18),
-            ),
-            const SizedBox(height: 9),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: _dark,
-                height: 1.2,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 9, color: _grey, height: 1.3),
-            ),
-            const Spacer(),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required Widget page,
+    required _HomeColors colors,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.cardBorder, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: (colors.isDark ? Colors.black : const Color(0xFF059669))
+                .withValues(alpha: colors.isDark ? 0.3 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: () => _open(context, page),
+          borderRadius: BorderRadius.circular(18),
+          mouseCursor: SystemMouseCursors.click,
+          splashColor: color.withValues(alpha: 0.12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: colors.isDark ? 0.22 : 0.12),
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
                 ),
-                child: Icon(Icons.arrow_forward_rounded,
-                    size: 13, color: color),
-              ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: colors.textPrimary,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: colors.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
+                const Spacer(),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: colors.isDark ? 0.2 : 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 13,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -552,35 +729,44 @@ class HomeScreen extends StatelessWidget {
   // ================================================================
   // FEATURED JOBS
   // ================================================================
-  Widget _buildFeaturedHeader(BuildContext context) {
+  Widget _buildFeaturedHeader(BuildContext context, _HomeColors colors) {
     return Row(
       children: [
-        const Icon(Icons.business_center_outlined, color: _primary, size: 26),
+        Icon(
+          Icons.business_center_outlined,
+          color: colors.primary,
+          size: 24,
+        ),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: Text(
             'Featured Jobs',
             style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.w800,
-              color: _dark,
+              color: colors.textPrimary,
+              letterSpacing: -0.3,
             ),
           ),
         ),
         GestureDetector(
           onTap: () => _open(context, const JobsScreen()),
-          child: const Row(
+          child: Row(
             children: [
               Text(
                 'View All',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: _primary,
+                  color: colors.primary,
                 ),
               ),
-              SizedBox(width: 3),
-              Icon(Icons.chevron_right_rounded, color: _primary, size: 20),
+              const SizedBox(width: 3),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colors.primary,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -588,25 +774,32 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeaturedJobs() {
+  Widget _buildFeaturedJobs(_HomeColors colors) {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return _messageCard('Please login to see recommended jobs.');
+      return _messageCard(
+        'Please login to see recommended jobs.',
+        colors,
+      );
     }
 
     return StreamBuilder<QuerySnapshot>(
       stream: _latestRecommendationStream(),
       builder: (context, recSnap) {
         if (recSnap.connectionState == ConnectionState.waiting) {
-          return _buildLoading();
+          return _buildLoading(colors);
         }
         if (recSnap.hasError) {
-          return _messageCard('Unable to load your career recommendation.');
+          return _messageCard(
+            'Unable to load your career recommendation.',
+            colors,
+          );
         }
         if (!recSnap.hasData || recSnap.data!.docs.isEmpty) {
           return _messageCard(
             'Complete the AI Career Advisor to discover jobs that match your career path.',
+            colors,
           );
         }
 
@@ -614,6 +807,7 @@ class HomeScreen extends StatelessWidget {
         if (latest == null) {
           return _messageCard(
             'Complete the AI Career Advisor to discover jobs that match your career path.',
+            colors,
           );
         }
 
@@ -623,6 +817,7 @@ class HomeScreen extends StatelessWidget {
         if (career == null || career.isEmpty) {
           return _messageCard(
             'Complete the AI Career Advisor to discover jobs that match your career path.',
+            colors,
           );
         }
 
@@ -630,34 +825,40 @@ class HomeScreen extends StatelessWidget {
           stream: JobService().getRelatedJobs(career),
           builder: (context, jobSnap) {
             if (jobSnap.connectionState == ConnectionState.waiting) {
-              return _buildLoading();
+              return _buildLoading(colors);
             }
             if (jobSnap.hasError) {
-              return _messageCard('Unable to load recommended jobs.');
+              return _messageCard(
+                'Unable to load recommended jobs.',
+                colors,
+              );
             }
 
             final jobs = (jobSnap.data ?? []).take(5).toList();
 
             if (jobs.isEmpty) {
-              return _messageCard('No jobs found for $career yet.');
+              return _messageCard(
+                'No jobs found for $career yet.',
+                colors,
+              );
             }
 
             return LayoutBuilder(
               builder: (context, constraints) {
                 final double w = constraints.maxWidth;
 
-                // Desktop / tablet: cards share the row equally
+                // Desktop / tablet: cards share row
                 if (w >= 700) {
                   final shown = jobs.take(3).toList();
                   return SizedBox(
-                    height: 160,
+                    height: 168,
                     child: Row(
                       children: [
                         for (int i = 0; i < 3; i++) ...[
                           if (i > 0) const SizedBox(width: 14),
                           Expanded(
                             child: i < shown.length
-                                ? _buildJobCard(context, shown[i], i)
+                                ? _buildJobCard(context, shown[i], i, colors)
                                 : const SizedBox(),
                           ),
                         ],
@@ -667,16 +868,16 @@ class HomeScreen extends StatelessWidget {
                 }
 
                 // Mobile: horizontal scroll
-                final double cardWidth = w * 0.72;
+                final double cardWidth = w * 0.76;
                 return SizedBox(
-                  height: 150,
+                  height: 160,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: jobs.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    separatorBuilder: (context, index) => const SizedBox(width: 12),
                     itemBuilder: (_, i) => SizedBox(
                       width: cardWidth,
-                      child: _buildJobCard(context, jobs[i], i),
+                      child: _buildJobCard(context, jobs[i], i, colors),
                     ),
                   ),
                 );
@@ -688,28 +889,29 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildJobCard(BuildContext context, Job job, int index) {
-    const chipColors = [
-      [Color(0xFFEFF6FF), Color(0xFF2563EB)],
-      [Color(0xFFF5F3FF), Color(0xFF7C3AED)],
-      [Color(0xFFECFDF5), Color(0xFF059669)],
-    ];
-    final c = chipColors[index % chipColors.length];
+  Widget _buildJobCard(
+    BuildContext context,
+    Job job,
+    int index,
+    _HomeColors colors,
+  ) {
     final company = job.company.trim();
     final letter = company.isNotEmpty ? company[0].toUpperCase() : 'J';
 
     return GestureDetector(
       onTap: () => _open(context, JobDetailsScreen(job: job)),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.cardBg,
           borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: colors.cardBorder, width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: (colors.isDark ? Colors.black : const Color(0xFF059669))
+                  .withValues(alpha: colors.isDark ? 0.3 : 0.05),
               blurRadius: 12,
-              offset: const Offset(0, 5),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -722,16 +924,21 @@ class HomeScreen extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: c[0],
+                    color: colors.primary.withValues(
+                      alpha: colors.isDark ? 0.22 : 0.12,
+                    ),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: colors.primary.withValues(alpha: 0.3),
+                    ),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     letter,
                     style: TextStyle(
-                      fontSize: 17,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: c[1],
+                      color: colors.primary,
                     ),
                   ),
                 ),
@@ -743,7 +950,9 @@ class HomeScreen extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: c[0],
+                      color: colors.primary.withValues(
+                        alpha: colors.isDark ? 0.2 : 0.08,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -751,9 +960,9 @@ class HomeScreen extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w700,
-                        color: c[1],
+                        color: colors.primary,
                       ),
                     ),
                   ),
@@ -765,10 +974,10 @@ class HomeScreen extends StatelessWidget {
               job.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: _dark,
+                color: colors.textPrimary,
               ),
             ),
             const SizedBox(height: 3),
@@ -776,31 +985,42 @@ class HomeScreen extends StatelessWidget {
               job.company,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: _grey),
+              style: TextStyle(fontSize: 12, color: colors.textSecondary),
             ),
             const Spacer(),
             Row(
               children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 14, color: Color(0xFF9CA3AF)),
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 14,
+                  color: colors.textMuted,
+                ),
                 const SizedBox(width: 3),
                 Expanded(
                   child: Text(
                     job.location,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, color: _grey),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colors.textSecondary,
+                    ),
                   ),
                 ),
                 Container(
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: c[0],
+                    color: colors.primary.withValues(
+                      alpha: colors.isDark ? 0.2 : 0.1,
+                    ),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.arrow_forward_rounded,
-                      size: 15, color: c[1]),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 15,
+                    color: colors.primary,
+                  ),
                 ),
               ],
             ),
@@ -810,50 +1030,67 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoading() {
+  Widget _buildLoading(_HomeColors colors) {
     return Container(
       width: double.infinity,
       height: 130,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBg,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.cardBorder),
       ),
-      child: const Center(
-        child: CircularProgressIndicator(strokeWidth: 2.5),
+      child: Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: colors.primary,
+        ),
       ),
     );
   }
 
-  Widget _messageCard(String message) {
+  Widget _messageCard(String message, _HomeColors colors) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _border),
+        border: Border.all(color: colors.cardBorder),
       ),
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 13, color: _grey, height: 1.4),
+        style: TextStyle(
+          fontSize: 13,
+          color: colors.textSecondary,
+          height: 1.4,
+        ),
       ),
     );
   }
 
   // ================================================================
-  // CTA BANNER
+  // CTA BANNER (LUSH EMERALD GRADIENT)
   // ================================================================
-  Widget _buildCtaBanner(BuildContext context) {
+  Widget _buildCtaBanner(BuildContext context, _HomeColors colors) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6366F1), Color(0xFF93C5FD)],
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          colors: colors.isDark
+              ? const [Color(0xFF047857), Color(0xFF065F46)]
+              : const [Color(0xFF059669), Color(0xFF10B981)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.primary.withValues(alpha: 0.3),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -861,7 +1098,7 @@ class HomeScreen extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.22),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.auto_awesome, color: Colors.white),
@@ -875,14 +1112,14 @@ class HomeScreen extends StatelessWidget {
                   'Ready for your next step?',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 SizedBox(height: 3),
                 Text(
                   'Get AI-powered career advice tailored just for you.',
-                  style: TextStyle(color: Colors.white, fontSize: 10.5),
+                  style: TextStyle(color: Color(0xFFE2FBEA), fontSize: 11),
                 ),
               ],
             ),
@@ -891,26 +1128,35 @@ class HomeScreen extends StatelessWidget {
           GestureDetector(
             onTap: () => _open(context, const CareerAdvisorScreen()),
             child: Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'Get Started',
                     style: TextStyle(
-                      color: _primary,
-                      fontSize: 11,
+                      color: colors.primaryDark,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.arrow_forward_rounded,
-                      size: 13, color: _primary),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 14,
+                    color: colors.primaryDark,
+                  ),
                 ],
               ),
             ),
@@ -923,14 +1169,17 @@ class HomeScreen extends StatelessWidget {
   // ================================================================
   // BOTTOM NAVIGATION
   // ================================================================
-  Widget _buildBottomNav(BuildContext context) {
+  Widget _buildBottomNav(BuildContext context, _HomeColors colors) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(color: colors.cardBorder, width: 1.2),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: colors.isDark ? 0.35 : 0.06),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -950,14 +1199,21 @@ class HomeScreen extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _navItem(Icons.home_rounded, 'Home', true, () {}),
+                        child: _navItem(
+                          Icons.home_rounded,
+                          'Home',
+                          true,
+                          () {},
+                          colors,
+                        ),
                       ),
                       Expanded(
                         child: _navItem(
                           Icons.work_outline_rounded,
                           'Jobs',
                           false,
-                              () => _open(context, const JobsScreen()),
+                          () => _open(context, const JobsScreen()),
+                          colors,
                         ),
                       ),
                       const Expanded(child: SizedBox()),
@@ -966,7 +1222,8 @@ class HomeScreen extends StatelessWidget {
                           Icons.history_rounded,
                           'History',
                           false,
-                              () => _open(context, const CareerHistoryScreen()),
+                          () => _open(context, const CareerHistoryScreen()),
+                          colors,
                         ),
                       ),
                       Expanded(
@@ -974,11 +1231,14 @@ class HomeScreen extends StatelessWidget {
                           Icons.person_outline_rounded,
                           'Profile',
                           false,
-                              () => _open(context, const ProfileScreen()),
+                          () => _open(context, const ProfileScreen()),
+                          colors,
                         ),
                       ),
                     ],
                   ),
+
+                  // Floating AI Middle Button
                   Positioned(
                     top: -24,
                     left: 0,
@@ -986,40 +1246,59 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         GestureDetector(
-                          onTap: () => _open(context, const CareerAdvisorScreen()),
+                          onTap: () =>
+                              _open(context, const CareerAdvisorScreen()),
                           child: Container(
                             width: 60,
                             height: 60,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white,
-                              border: Border.all(color: Colors.white, width: 5),
+                              color: colors.cardBg,
+                              border: Border.all(
+                                color: colors.cardBg,
+                                width: 5,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _primary.withValues(alpha: 0.35),
+                                  color: colors.primary.withValues(alpha: 0.35),
                                   blurRadius: 14,
                                   offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
                             child: Container(
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: LinearGradient(
-                                  colors: [_primary, Color(0xFF7C3AED)],
+                                  colors: colors.isDark
+                                      ? const [
+                                          Color(0xFF047857),
+                                          Color(0xFF059669)
+                                        ]
+                                      : const [
+                                          Color(0xFF059669),
+                                          Color(0xFF10B981)
+                                        ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
                               ),
-                              child: const Icon(Icons.auto_awesome,
-                                  color: Colors.white, size: 28),
+                              child: const Icon(
+                                Icons.auto_awesome,
+                                color: Colors.white,
+                                size: 28,
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
+                        const SizedBox(height: 3),
+                        Text(
                           'AI',
-                          style: TextStyle(fontSize: 11, color: _grey),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: colors.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -1034,24 +1313,25 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _navItem(
-      IconData icon,
-      String label,
-      bool active,
-      VoidCallback onTap,
-      ) {
-    final color = active ? _primary : const Color(0xFF9CA3AF);
+    IconData icon,
+    String label,
+    bool active,
+    VoidCallback onTap,
+    _HomeColors colors,
+  ) {
+    final color = active ? colors.primary : colors.textMuted;
     return InkWell(
       onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 26),
+          Icon(icon, color: color, size: 25),
           const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
               fontSize: 11,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w500,
               color: color,
             ),
           ),
@@ -1084,8 +1364,10 @@ class HomeScreen extends StatelessWidget {
     final documents = List<QueryDocumentSnapshot>.from(snapshot.docs);
 
     documents.sort((a, b) {
-      final tsA = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-      final tsB = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+      final tsA =
+          (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+      final tsB =
+          (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
 
       if (tsA == null && tsB == null) return 0;
       if (tsA == null) return 1;

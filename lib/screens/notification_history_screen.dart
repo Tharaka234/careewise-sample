@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:careerwise_sample/screens/notification_settings_screen.dart';
 import 'package:careerwise_sample/services/notification_service.dart';
 import 'package:careerwise_sample/services/notification_types.dart';
+import 'admin_profile_screen.dart';
 
 class NotificationHistoryScreen extends StatefulWidget {
   const NotificationHistoryScreen({super.key});
@@ -16,21 +17,6 @@ class NotificationHistoryScreen extends StatefulWidget {
 
 class _NotificationHistoryScreenState
     extends State<NotificationHistoryScreen> {
-  // =========================================================
-  // COLORS
-  // =========================================================
-
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryDark = Color(0xFF1D4ED8);
-  static const Color indigo = Color(0xFF4338CA);
-
-  static const Color background = Color(0xFFF6F8FC);
-  static const Color cardColor = Colors.white;
-
-  static const Color textPrimary = Color(0xFF172033);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color borderColor = Color(0xFFE9EEF5);
-
   // =========================================================
   // FILTERS
   // =========================================================
@@ -47,7 +33,7 @@ class _NotificationHistoryScreenState
   // =========================================================
 
   late final Stream<List<NotificationHistoryItem>> _stream =
-  NotificationService.instance.watchHistory();
+      NotificationService.instance.watchHistory();
 
   StreamSubscription<Set<String>>? _dismissedSubscription;
 
@@ -61,14 +47,14 @@ class _NotificationHistoryScreenState
 
     _dismissedSubscription =
         NotificationService.instance.watchDismissedHistory().listen(
-              (ids) {
-            if (!mounted) return;
+      (ids) {
+        if (!mounted) return;
 
-            setState(() {
-              _dismissed = ids;
-            });
-          },
-        );
+        setState(() {
+          _dismissed = ids;
+        });
+      },
+    );
   }
 
   @override
@@ -117,24 +103,20 @@ class _NotificationHistoryScreenState
   }
 
   int _filterCount(
-      List<NotificationHistoryItem> items,
-      String filter,
-      ) {
+    List<NotificationHistoryItem> items,
+    String filter,
+  ) {
     switch (filter) {
       case filterJobs:
         return items
-            .where(
-              (item) => item.type == NotificationTypes.newJob,
-        )
+            .where((item) => item.type == NotificationTypes.newJob)
             .length;
 
       case filterUpdates:
         return items
-            .where(
-              (item) =>
-          item.type == NotificationTypes.jobUpdated ||
-              item.type == NotificationTypes.jobDeleted,
-        )
+            .where((item) =>
+                item.type == NotificationTypes.jobUpdated ||
+                item.type == NotificationTypes.jobDeleted)
             .length;
 
       case filterAnnouncements:
@@ -150,8 +132,8 @@ class _NotificationHistoryScreenState
   // =========================================================
 
   Future<void> _deleteNotifications(
-      List<NotificationHistoryItem> items,
-      ) async {
+    List<NotificationHistoryItem> items,
+  ) async {
     if (items.isEmpty) return;
 
     final ids = items.map((item) => item.id).toList();
@@ -182,7 +164,6 @@ class _NotificationHistoryScreenState
 
     if (!mounted) return;
 
-
     ScaffoldMessenger.of(context)
       ..removeCurrentSnackBar()
       ..showSnackBar(
@@ -190,9 +171,12 @@ class _NotificationHistoryScreenState
           duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
-          backgroundColor: const Color(0xFF172033),
+          backgroundColor: const Color(0xFF042618),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: const Color(0xFF10B981).withValues(alpha: 0.35),
+            ),
           ),
           content: Text(
             ids.length == 1
@@ -205,7 +189,7 @@ class _NotificationHistoryScreenState
           ),
           action: SnackBarAction(
             label: 'UNDO',
-            textColor: const Color(0xFF93C5FD),
+            textColor: const Color(0xFF6EE7B7),
             onPressed: () {
               if (!mounted) return;
 
@@ -218,14 +202,13 @@ class _NotificationHistoryScreenState
           ),
         ),
       );
-
   }
 
   // =========================================================
   // CLEAR ALL BOTTOM SHEET
   // =========================================================
 
-  Future<void> _showClearConfirmation() async {
+  Future<void> _showClearConfirmation(_NotificationColors colors) async {
     if (_currentVisibleItems.isEmpty) {
       _showMessage('No notifications to clear.');
       return;
@@ -246,8 +229,9 @@ class _NotificationHistoryScreenState
               24,
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colors.cardBg,
               borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: colors.cardBorder, width: 1.2),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -256,18 +240,16 @@ class _NotificationHistoryScreenState
                   width: 42,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD7DDE7),
+                    color: colors.cardBorder,
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
                 Container(
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFEEEE),
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Icon(
@@ -276,34 +258,28 @@ class _NotificationHistoryScreenState
                     color: Color(0xFFEF4444),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                const Text(
+                Text(
                   'Clear notifications?',
                   style: TextStyle(
                     fontSize: 21,
                     fontWeight: FontWeight.w800,
-                    color: textPrimary,
+                    color: colors.textPrimary,
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 Text(
                   'This will remove ${_currentVisibleItems.length} '
-                      'notification${_currentVisibleItems.length == 1 ? '' : 's'} '
-                      'currently shown in your notification history.',
+                  'notification${_currentVisibleItems.length == 1 ? '' : 's'} '
+                  'currently shown in your notification history.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.5,
-                    color: textSecondary,
+                    color: colors.textSecondary,
                   ),
                 ),
-
                 const SizedBox(height: 26),
-
                 Row(
                   children: [
                     Expanded(
@@ -313,25 +289,23 @@ class _NotificationHistoryScreenState
                         },
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 52),
-                          side: const BorderSide(
-                            color: Color(0xFFE2E8F0),
+                          side: BorderSide(
+                            color: colors.cardBorder,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Cancel',
                           style: TextStyle(
-                            color: textPrimary,
+                            color: colors.textPrimary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
@@ -343,8 +317,7 @@ class _NotificationHistoryScreenState
                         ),
                         label: const Text('Clear'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                          const Color(0xFFEF4444),
+                          backgroundColor: const Color(0xFFEF4444),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           minimumSize: const Size(0, 52),
@@ -373,20 +346,22 @@ class _NotificationHistoryScreenState
   // =========================================================
 
   void _showMessage(
-      String message, {
-        bool error = false,
-      }) {
+    String message, {
+    bool error = false,
+  }) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
-          backgroundColor: error
-              ? const Color(0xFFDC2626)
-              : const Color(0xFF172033),
+          backgroundColor:
+              error ? const Color(0xFFDC2626) : const Color(0xFF042618),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: const Color(0xFF10B981).withValues(alpha: 0.35),
+            ),
           ),
           content: Text(
             message,
@@ -405,92 +380,89 @@ class _NotificationHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: background,
-      body: StreamBuilder<List<NotificationHistoryItem>>(
-        stream: _stream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return _buildErrorState(snapshot.error);
-          }
+    return ValueListenableBuilder<bool>(
+      valueListenable: AdminThemeManager.isDarkMode,
+      builder: (context, isDark, _) {
+        final colors = _NotificationColors(isDark: isDark);
 
-          if (!snapshot.hasData) {
-            return _buildLoadingState();
-          }
+        return Scaffold(
+          backgroundColor: colors.pageBg,
+          body: StreamBuilder<List<NotificationHistoryItem>>(
+            stream: _stream,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return _buildErrorState(snapshot.error, colors);
+              }
 
-          final allVisibleItems = snapshot.data!
-              .where(_visibleToUser)
-              .toList();
+              if (!snapshot.hasData) {
+                return _buildLoadingState(colors);
+              }
 
-          allVisibleItems.sort(
+              final allVisibleItems =
+                  snapshot.data!.where(_visibleToUser).toList();
+
+              allVisibleItems.sort(
                 (a, b) {
-              final aDate =
-                  a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final aDate =
+                      a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
-              final bDate =
-                  b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final bDate =
+                      b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
-              return bDate.compareTo(aDate);
+                  return bDate.compareTo(aDate);
+                },
+              );
+
+              final filteredItems =
+                  allVisibleItems.where(_matchesFilter).toList();
+
+              _currentVisibleItems = filteredItems;
+
+              return CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _buildHeroHeader(allVisibleItems, colors),
+                  ),
+                  SliverToBoxAdapter(
+                    child: _buildFilterSection(allVisibleItems, colors),
+                  ),
+                  if (filteredItems.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _buildEmptyState(colors),
+                    )
+                  else
+                    ..._buildGroupedNotifications(filteredItems, colors),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 30),
+                  ),
+                ],
+              );
             },
-          );
-
-          final filteredItems = allVisibleItems
-              .where(_matchesFilter)
-              .toList();
-
-          _currentVisibleItems = filteredItems;
-
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: _buildHeroHeader(
-                  allVisibleItems,
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: _buildFilterSection(
-                  allVisibleItems,
-                ),
-              ),
-
-              if (filteredItems.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _buildEmptyState(),
-                )
-              else
-                ..._buildGroupedNotifications(
-                  filteredItems,
-                ),
-
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 30),
-              ),
-            ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
   // =========================================================
-  // PREMIUM HEADER
+  // PREMIUM EMERALD HEADER
   // =========================================================
 
   Widget _buildHeroHeader(
-      List<NotificationHistoryItem> items,
-      ) {
+    List<NotificationHistoryItem> items,
+    _NotificationColors colors,
+  ) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1E3A8A),
-            Color(0xFF2563EB),
-            Color(0xFF4F46E5),
+            Color(0xFF044E36),
+            Color(0xFF059669),
+            Color(0xFF10B981),
           ],
         ),
         borderRadius: BorderRadius.only(
@@ -508,11 +480,10 @@ class _NotificationHistoryScreenState
               height: 170,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.07),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
             ),
           ),
-
           Positioned(
             top: 80,
             right: 70,
@@ -521,11 +492,10 @@ class _NotificationHistoryScreenState
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
-
           Positioned(
             bottom: -50,
             left: -40,
@@ -534,11 +504,10 @@ class _NotificationHistoryScreenState
               height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
-
           SafeArea(
             bottom: false,
             child: Padding(
@@ -559,9 +528,17 @@ class _NotificationHistoryScreenState
                           Navigator.maybePop(context);
                         },
                       ),
-
                       const Spacer(),
-
+                      // THEME TOGGLE BUTTON
+                      _glassHeaderButton(
+                        icon: colors.isDark
+                            ? Icons.wb_sunny_rounded
+                            : Icons.nightlight_round,
+                        onTap: () {
+                          AdminThemeManager.toggleTheme();
+                        },
+                      ),
+                      const SizedBox(width: 10),
                       _glassHeaderButton(
                         icon: Icons.settings_outlined,
                         onTap: () {
@@ -569,16 +546,14 @@ class _NotificationHistoryScreenState
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                              const NotificationSettingsScreen(),
+                                  const NotificationSettingsScreen(),
                             ),
                           );
                         },
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 30),
-
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -586,10 +561,10 @@ class _NotificationHistoryScreenState
                         width: 58,
                         height: 58,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.16),
+                          color: Colors.white.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(19),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.18),
+                            color: Colors.white.withValues(alpha: 0.22),
                           ),
                         ),
                         child: const Icon(
@@ -598,13 +573,10 @@ class _NotificationHistoryScreenState
                           size: 29,
                         ),
                       ),
-
                       const SizedBox(width: 16),
-
                       const Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Notifications',
@@ -615,13 +587,11 @@ class _NotificationHistoryScreenState
                                 letterSpacing: -0.7,
                               ),
                             ),
-
                             SizedBox(height: 5),
-
                             Text(
                               'Stay updated with your career journey',
                               style: TextStyle(
-                                color: Color(0xFFDCE7FF),
+                                color: Color(0xFFD1FAE5),
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -631,19 +601,17 @@ class _NotificationHistoryScreenState
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 25),
-
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
+                      color: Colors.white.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.14),
+                        color: Colors.white.withValues(alpha: 0.18),
                       ),
                     ),
                     child: Row(
@@ -652,7 +620,7 @@ class _NotificationHistoryScreenState
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.16),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
@@ -661,13 +629,10 @@ class _NotificationHistoryScreenState
                             size: 20,
                           ),
                         ),
-
                         const SizedBox(width: 12),
-
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 '${items.length} notification${items.length == 1 ? '' : 's'}',
@@ -677,25 +642,22 @@ class _NotificationHistoryScreenState
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-
                               const SizedBox(height: 2),
-
                               Text(
                                 items.isEmpty
                                     ? 'You\'re all caught up'
                                     : 'Latest career updates for you',
                                 style: const TextStyle(
-                                  color: Color(0xFFCFDBF5),
+                                  color: Color(0xFFD1FAE5),
                                   fontSize: 11.5,
                                 ),
                               ),
                             ],
                           ),
                         ),
-
                         if (items.isNotEmpty)
                           TextButton(
-                            onPressed: _showClearConfirmation,
+                            onPressed: () => _showClearConfirmation(colors),
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
@@ -728,7 +690,7 @@ class _NotificationHistoryScreenState
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white.withOpacity(0.12),
+      color: Colors.white.withValues(alpha: 0.15),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -740,7 +702,7 @@ class _NotificationHistoryScreenState
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.22),
             ),
           ),
           child: Icon(
@@ -758,8 +720,9 @@ class _NotificationHistoryScreenState
   // =========================================================
 
   Widget _buildFilterSection(
-      List<NotificationHistoryItem> items,
-      ) {
+    List<NotificationHistoryItem> items,
+    _NotificationColors colors,
+  ) {
     final filters = [
       filterAll,
       filterJobs,
@@ -778,13 +741,9 @@ class _NotificationHistoryScreenState
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Row(
           children: filters.map(
-                (filter) {
+            (filter) {
               final selected = selectedFilter == filter;
-
-              final count = _filterCount(
-                items,
-                filter,
-              );
+              final count = _filterCount(items, filter);
 
               return Padding(
                 padding: const EdgeInsets.only(right: 10),
@@ -804,19 +763,16 @@ class _NotificationHistoryScreenState
                         vertical: 11,
                       ),
                       decoration: BoxDecoration(
-                        color:
-                        selected ? primary : Colors.white,
+                        color: selected ? colors.primary : colors.chipBg,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: selected
-                              ? primary
-                              : borderColor,
+                          color: selected ? colors.primary : colors.chipBorder,
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: selected
-                                ? primary.withOpacity(0.18)
-                                : Colors.black.withOpacity(0.025),
+                                ? colors.primary.withValues(alpha: 0.25)
+                                : Colors.black.withValues(alpha: 0.03),
                             blurRadius: selected ? 14 : 8,
                             offset: const Offset(0, 4),
                           ),
@@ -830,25 +786,21 @@ class _NotificationHistoryScreenState
                             size: 17,
                             color: selected
                                 ? Colors.white
-                                : textSecondary,
+                                : colors.textSecondary,
                           ),
-
                           const SizedBox(width: 7),
-
                           Text(
                             filter,
                             style: TextStyle(
                               color: selected
                                   ? Colors.white
-                                  : textPrimary,
+                                  : colors.textPrimary,
                               fontSize: 12.5,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-
                           if (count > 0) ...[
                             const SizedBox(width: 7),
-
                             Container(
                               constraints: const BoxConstraints(
                                 minWidth: 22,
@@ -856,11 +808,11 @@ class _NotificationHistoryScreenState
                               ),
                               alignment: Alignment.center,
                               padding:
-                              const EdgeInsets.symmetric(horizontal: 6),
+                                  const EdgeInsets.symmetric(horizontal: 6),
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? Colors.white.withOpacity(0.18)
-                                    : const Color(0xFFEEF3FA),
+                                    ? Colors.white.withValues(alpha: 0.22)
+                                    : colors.countBg,
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -868,7 +820,7 @@ class _NotificationHistoryScreenState
                                 style: TextStyle(
                                   color: selected
                                       ? Colors.white
-                                      : primary,
+                                      : colors.primary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -909,8 +861,9 @@ class _NotificationHistoryScreenState
   // =========================================================
 
   List<Widget> _buildGroupedNotifications(
-      List<NotificationHistoryItem> items,
-      ) {
+    List<NotificationHistoryItem> items,
+    _NotificationColors colors,
+  ) {
     final today = <NotificationHistoryItem>[];
     final yesterday = <NotificationHistoryItem>[];
     final earlier = <NotificationHistoryItem>[];
@@ -923,8 +876,7 @@ class _NotificationHistoryScreenState
       now.day,
     );
 
-    final yesterdayDate =
-    todayDate.subtract(const Duration(days: 1));
+    final yesterdayDate = todayDate.subtract(const Duration(days: 1));
 
     for (final item in items) {
       final time = item.createdAt;
@@ -956,11 +908,12 @@ class _NotificationHistoryScreenState
         _buildGroupTitle(
           'TODAY',
           today.length,
+          colors,
         ),
       );
 
       slivers.add(
-        _buildNotificationGroup(today),
+        _buildNotificationGroup(today, colors),
       );
     }
 
@@ -969,11 +922,12 @@ class _NotificationHistoryScreenState
         _buildGroupTitle(
           'YESTERDAY',
           yesterday.length,
+          colors,
         ),
       );
 
       slivers.add(
-        _buildNotificationGroup(yesterday),
+        _buildNotificationGroup(yesterday, colors),
       );
     }
 
@@ -982,11 +936,12 @@ class _NotificationHistoryScreenState
         _buildGroupTitle(
           'EARLIER',
           earlier.length,
+          colors,
         ),
       );
 
       slivers.add(
-        _buildNotificationGroup(earlier),
+        _buildNotificationGroup(earlier, colors),
       );
     }
 
@@ -994,9 +949,10 @@ class _NotificationHistoryScreenState
   }
 
   Widget _buildGroupTitle(
-      String title,
-      int count,
-      ) {
+    String title,
+    int count,
+    _NotificationColors colors,
+  ) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -1009,31 +965,27 @@ class _NotificationHistoryScreenState
           children: [
             Text(
               title,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
+              style: TextStyle(
+                color: colors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
               ),
             ),
-
             const SizedBox(width: 8),
-
             Container(
               width: 5,
               height: 5,
-              decoration: const BoxDecoration(
-                color: Color(0xFFCBD5E1),
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.60),
                 shape: BoxShape.circle,
               ),
             ),
-
             const SizedBox(width: 8),
-
             Text(
               '$count',
-              style: const TextStyle(
-                color: Color(0xFF94A3B8),
+              style: TextStyle(
+                color: colors.primary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -1045,18 +997,19 @@ class _NotificationHistoryScreenState
   }
 
   Widget _buildNotificationGroup(
-      List<NotificationHistoryItem> items,
-      ) {
+    List<NotificationHistoryItem> items,
+    _NotificationColors colors,
+  ) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
-              (context, index) {
+          (context, index) {
             final item = items[index];
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _buildDismissibleCard(item),
+              child: _buildDismissibleCard(item, colors),
             );
           },
           childCount: items.length,
@@ -1070,8 +1023,9 @@ class _NotificationHistoryScreenState
   // =========================================================
 
   Widget _buildDismissibleCard(
-      NotificationHistoryItem item,
-      ) {
+    NotificationHistoryItem item,
+    _NotificationColors colors,
+  ) {
     return Dismissible(
       key: ValueKey(item.id),
       direction: DismissDirection.endToStart,
@@ -1110,7 +1064,7 @@ class _NotificationHistoryScreenState
           ],
         ),
       ),
-      child: _buildNotificationCard(item),
+      child: _buildNotificationCard(item, colors),
     );
   }
 
@@ -1119,12 +1073,12 @@ class _NotificationHistoryScreenState
   // =========================================================
 
   Widget _buildNotificationCard(
-      NotificationHistoryItem item,
-      ) {
-    final style = _getNotificationStyle(item);
+    NotificationHistoryItem item,
+    _NotificationColors colors,
+  ) {
+    final style = _getNotificationStyle(item, colors.isDark);
 
-    final isDeleted =
-        item.type == NotificationTypes.jobDeleted;
+    final isDeleted = item.type == NotificationTypes.jobDeleted;
 
     final isJob = item.jobId != null &&
         !isDeleted &&
@@ -1132,27 +1086,30 @@ class _NotificationHistoryScreenState
             item.type == NotificationTypes.jobUpdated);
 
     return Material(
-      color: Colors.white,
+      color: colors.cardBg,
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
         onTap: isJob
             ? () {
-          NotificationService.instance.openHistoryItem(item);
-        }
+                NotificationService.instance.openHistoryItem(item);
+              }
             : null,
         child: Container(
           decoration: BoxDecoration(
-            color: cardColor,
+            color: colors.cardBg,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: borderColor,
+              color: colors.cardBorder,
+              width: 1.2,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0F172A).withOpacity(0.04),
-                blurRadius: 20,
-                offset: const Offset(0, 7),
+                color: colors.isDark
+                    ? Colors.black26
+                    : const Color(0xFF0F172A).withValues(alpha: 0.04),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
@@ -1169,7 +1126,6 @@ class _NotificationHistoryScreenState
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
@@ -1194,13 +1150,10 @@ class _NotificationHistoryScreenState
                             size: 24,
                           ),
                         ),
-
                         const SizedBox(width: 13),
-
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
@@ -1215,16 +1168,14 @@ class _NotificationHistoryScreenState
                                       ),
                                     ),
                                   ),
-
                                   Text(
                                     _timeAgo(item.createdAt),
-                                    style: const TextStyle(
-                                      color: Color(0xFF94A3B8),
+                                    style: TextStyle(
+                                      color: colors.textSecondary,
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-
                                   if (_isRecent(item.createdAt)) ...[
                                     const SizedBox(width: 7),
                                     Container(
@@ -1238,44 +1189,43 @@ class _NotificationHistoryScreenState
                                   ],
                                 ],
                               ),
-
                               const SizedBox(height: 7),
-
                               Text(
                                 item.title,
-                                style: const TextStyle(
-                                  color: textPrimary,
+                                style: TextStyle(
+                                  color: colors.textPrimary,
                                   fontSize: 15.5,
                                   height: 1.25,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: -0.15,
                                 ),
                               ),
-
                               const SizedBox(height: 7),
-
                               Text(
                                 item.body,
-                                style: const TextStyle(
-                                  color: textSecondary,
+                                style: TextStyle(
+                                  color: colors.textSecondary,
                                   fontSize: 13,
                                   height: 1.5,
                                   fontWeight: FontWeight.w400,
                                 ),
                               ),
-
                               if (item.category != null) ...[
                                 const SizedBox(height: 13),
-
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F7FA),
-                                    borderRadius:
-                                    BorderRadius.circular(9),
+                                    color: colors.isDark
+                                        ? const Color(0xFF0E2319)
+                                        : const Color(0xFFF0FDF4),
+                                    borderRadius: BorderRadius.circular(9),
+                                    border: Border.all(
+                                      color: colors.cardBorder,
+                                      width: 0.8,
+                                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -1285,19 +1235,15 @@ class _NotificationHistoryScreenState
                                         color: style.color,
                                         size: 12,
                                       ),
-
                                       const SizedBox(width: 5),
-
                                       Flexible(
                                         child: Text(
                                           item.category!,
-                                          overflow:
-                                          TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: textSecondary,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: colors.textSecondary,
                                             fontSize: 10.5,
-                                            fontWeight:
-                                            FontWeight.w600,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
@@ -1305,13 +1251,10 @@ class _NotificationHistoryScreenState
                                   ),
                                 ),
                               ],
-
                               if (isJob) ...[
                                 const SizedBox(height: 15),
-
                                 InkWell(
-                                  borderRadius:
-                                  BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(10),
                                   onTap: () {
                                     NotificationService.instance
                                         .openHistoryItem(item);
@@ -1325,23 +1268,18 @@ class _NotificationHistoryScreenState
                                       children: [
                                         Text(
                                           item.type ==
-                                              NotificationTypes
-                                                  .jobUpdated
+                                                  NotificationTypes.jobUpdated
                                               ? 'View changes'
                                               : 'View opportunity',
                                           style: TextStyle(
                                             color: style.color,
                                             fontSize: 12,
-                                            fontWeight:
-                                            FontWeight.w800,
+                                            fontWeight: FontWeight.w800,
                                           ),
                                         ),
-
                                         const SizedBox(width: 5),
-
                                         Icon(
-                                          Icons
-                                              .arrow_forward_rounded,
+                                          Icons.arrow_forward_rounded,
                                           color: style.color,
                                           size: 16,
                                         ),
@@ -1353,17 +1291,21 @@ class _NotificationHistoryScreenState
                             ],
                           ),
                         ),
-
                         PopupMenuButton<String>(
                           padding: EdgeInsets.zero,
+                          color: colors.cardBg,
                           splashRadius: 20,
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.more_horiz_rounded,
-                            color: Color(0xFF94A3B8),
+                            color: colors.textSecondary,
                             size: 21,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: colors.cardBorder,
+                              width: 1.2,
+                            ),
                           ),
                           onSelected: (value) {
                             if (value == 'delete') {
@@ -1412,40 +1354,49 @@ class _NotificationHistoryScreenState
   // =========================================================
 
   _NotificationStyle _getNotificationStyle(
-      NotificationHistoryItem item,
-      ) {
+    NotificationHistoryItem item,
+    bool isDark,
+  ) {
     if (item.type == NotificationTypes.newJob) {
-      return const _NotificationStyle(
+      return _NotificationStyle(
         label: 'New opportunity',
         icon: Icons.work_outline_rounded,
-        color: Color(0xFF2563EB),
-        background: Color(0xFFEEF4FF),
+        color: const Color(0xFF059669),
+        background: isDark
+            ? const Color(0xFF064E3B).withValues(alpha: 0.40)
+            : const Color(0xFFD1FAE5),
       );
     }
 
     if (item.type == NotificationTypes.jobUpdated) {
-      return const _NotificationStyle(
+      return _NotificationStyle(
         label: 'Job updated',
         icon: Icons.auto_awesome_outlined,
-        color: Color(0xFFF59E0B),
-        background: Color(0xFFFFF7E6),
+        color: const Color(0xFFD97706),
+        background: isDark
+            ? const Color(0xFF78350F).withValues(alpha: 0.35)
+            : const Color(0xFFFEF3C7),
       );
     }
 
     if (item.type == NotificationTypes.jobDeleted) {
-      return const _NotificationStyle(
+      return _NotificationStyle(
         label: 'Job removed',
         icon: Icons.work_off_outlined,
-        color: Color(0xFFEF4444),
-        background: Color(0xFFFFEEEE),
+        color: const Color(0xFFEF4444),
+        background: isDark
+            ? const Color(0xFF7F1D1D).withValues(alpha: 0.35)
+            : const Color(0xFFFEE2E2),
       );
     }
 
-    return const _NotificationStyle(
+    return _NotificationStyle(
       label: 'Announcement',
       icon: Icons.campaign_outlined,
-      color: Color(0xFF7C3AED),
-      background: Color(0xFFF4EEFF),
+      color: const Color(0xFF10B981),
+      background: isDark
+          ? const Color(0xFF064E3B).withValues(alpha: 0.40)
+          : const Color(0xFFECFDF5),
     );
   }
 
@@ -1465,7 +1416,7 @@ class _NotificationHistoryScreenState
   // EMPTY STATE
   // =========================================================
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(_NotificationColors colors) {
     String title;
     String description;
     IconData icon;
@@ -1474,28 +1425,28 @@ class _NotificationHistoryScreenState
       case filterJobs:
         title = 'No job alerts yet';
         description =
-        'New career opportunities will appear here when they become available.';
+            'New career opportunities will appear here when they become available.';
         icon = Icons.work_outline_rounded;
         break;
 
       case filterUpdates:
         title = 'No updates yet';
         description =
-        'Changes to jobs and other important updates will appear here.';
+            'Changes to jobs and other important updates will appear here.';
         icon = Icons.auto_awesome_outlined;
         break;
 
       case filterAnnouncements:
         title = 'No announcements';
         description =
-        'CareerWise announcements and important news will appear here.';
+            'CareerWise announcements and important news will appear here.';
         icon = Icons.campaign_outlined;
         break;
 
       default:
         title = 'You\'re all caught up!';
         description =
-        'There are no notifications right now. We\'ll let you know when something important happens.';
+            'There are no notifications right now. We\'ll let you know when something important happens.';
         icon = Icons.notifications_none_rounded;
     }
 
@@ -1514,38 +1465,39 @@ class _NotificationHistoryScreenState
               width: 104,
               height: 104,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFEEF4FF),
-                    Color(0xFFF4F0FF),
-                  ],
+                  colors: colors.isDark
+                      ? [
+                          const Color(0xFF064E3B),
+                          const Color(0xFF042F23),
+                        ]
+                      : [
+                          const Color(0xFFD1FAE5),
+                          const Color(0xFFA7F3D0),
+                        ],
                 ),
                 borderRadius: BorderRadius.circular(32),
               ),
               child: Icon(
                 icon,
-                color: primary,
+                color: colors.primary,
                 size: 47,
               ),
             ),
-
             const SizedBox(height: 24),
-
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: textPrimary,
+              style: TextStyle(
+                color: colors.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.3,
               ),
             ),
-
             const SizedBox(height: 9),
-
             ConstrainedBox(
               constraints: const BoxConstraints(
                 maxWidth: 320,
@@ -1553,23 +1505,20 @@ class _NotificationHistoryScreenState
               child: Text(
                 description,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: textSecondary,
+                style: TextStyle(
+                  color: colors.textSecondary,
                   fontSize: 13.5,
                   height: 1.55,
                 ),
               ),
             ),
-
             const SizedBox(height: 22),
-
             TextButton.icon(
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                    const NotificationSettingsScreen(),
+                    builder: (_) => const NotificationSettingsScreen(),
                   ),
                 );
               },
@@ -1581,7 +1530,7 @@ class _NotificationHistoryScreenState
                 'Notification settings',
               ),
               style: TextButton.styleFrom(
-                foregroundColor: primary,
+                foregroundColor: colors.primary,
               ),
             ),
           ],
@@ -1594,14 +1543,13 @@ class _NotificationHistoryScreenState
   // LOADING
   // =========================================================
 
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(_NotificationColors colors) {
     return Container(
-      color: background,
+      color: colors.pageBg,
       child: Column(
         children: [
           _buildLoadingHeader(),
-
-          const Expanded(
+          Expanded(
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1610,17 +1558,15 @@ class _NotificationHistoryScreenState
                     width: 34,
                     height: 34,
                     child: CircularProgressIndicator(
-                      color: primary,
+                      color: colors.primary,
                       strokeWidth: 3,
                     ),
                   ),
-
-                  SizedBox(height: 15),
-
+                  const SizedBox(height: 15),
                   Text(
                     'Loading notifications...',
                     style: TextStyle(
-                      color: textSecondary,
+                      color: colors.textSecondary,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1640,9 +1586,9 @@ class _NotificationHistoryScreenState
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color(0xFF1E3A8A),
-            Color(0xFF2563EB),
-            Color(0xFF4F46E5),
+            Color(0xFF044E36),
+            Color(0xFF059669),
+            Color(0xFF10B981),
           ],
         ),
         borderRadius: BorderRadius.only(
@@ -1668,9 +1614,7 @@ class _NotificationHistoryScreenState
                   Navigator.maybePop(context);
                 },
               ),
-
               const SizedBox(height: 28),
-
               const Text(
                 'Notifications',
                 style: TextStyle(
@@ -1679,13 +1623,11 @@ class _NotificationHistoryScreenState
                   fontWeight: FontWeight.w800,
                 ),
               ),
-
               const SizedBox(height: 5),
-
               const Text(
                 'Stay updated with your career journey',
                 style: TextStyle(
-                  color: Color(0xFFDCE7FF),
+                  color: Color(0xFFD1FAE5),
                   fontSize: 13,
                 ),
               ),
@@ -1700,9 +1642,9 @@ class _NotificationHistoryScreenState
   // ERROR
   // =========================================================
 
-  Widget _buildErrorState(Object? error) {
+  Widget _buildErrorState(Object? error, _NotificationColors colors) {
     return Container(
-      color: background,
+      color: colors.pageBg,
       child: SafeArea(
         child: Column(
           children: [
@@ -1719,17 +1661,16 @@ class _NotificationHistoryScreenState
                     onPressed: () {
                       Navigator.maybePop(context);
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
+                      color: colors.textPrimary,
                     ),
                   ),
-
                   const SizedBox(width: 5),
-
-                  const Text(
+                  Text(
                     'Notifications',
                     style: TextStyle(
-                      color: textPrimary,
+                      color: colors.textPrimary,
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                     ),
@@ -1737,7 +1678,6 @@ class _NotificationHistoryScreenState
                 ],
               ),
             ),
-
             Expanded(
               child: Center(
                 child: Padding(
@@ -1749,7 +1689,8 @@ class _NotificationHistoryScreenState
                         width: 86,
                         height: 86,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFEEEE),
+                          color: const Color(0xFFEF4444)
+                              .withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(28),
                         ),
                         child: const Icon(
@@ -1758,26 +1699,22 @@ class _NotificationHistoryScreenState
                           size: 39,
                         ),
                       ),
-
                       const SizedBox(height: 22),
-
-                      const Text(
+                      Text(
                         'Couldn\'t load notifications',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: textPrimary,
+                          color: colors.textPrimary,
                           fontSize: 19,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
-                      const Text(
+                      Text(
                         'Please check your connection and try again.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: textSecondary,
+                          color: colors.textSecondary,
                           fontSize: 13.5,
                           height: 1.5,
                         ),
@@ -1826,6 +1763,43 @@ class _NotificationHistoryScreenState
 
     return '${time.day}/${time.month}/${time.year}';
   }
+}
+
+// ===========================================================
+// NOTIFICATION COLORS HELPER
+// ===========================================================
+
+class _NotificationColors {
+  final bool isDark;
+  final Color pageBg;
+  final Color cardBg;
+  final Color cardBorder;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color primary;
+  final Color accent;
+  final Color chipBg;
+  final Color chipBorder;
+  final Color countBg;
+
+  _NotificationColors({required this.isDark})
+      : pageBg = isDark ? const Color(0xFF0A140F) : const Color(0xFFF0FDF4),
+        cardBg = isDark ? const Color(0xFF132A1F) : Colors.white,
+        cardBorder = isDark
+            ? const Color(0xFF065F46).withValues(alpha: 0.35)
+            : const Color(0xFFE2E8F0),
+        textPrimary = isDark ? Colors.white : const Color(0xFF0F172A),
+        textSecondary =
+            isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+        primary = const Color(0xFF059669),
+        accent = const Color(0xFF10B981),
+        chipBg = isDark ? const Color(0xFF132A1F) : Colors.white,
+        chipBorder = isDark
+            ? const Color(0xFF065F46).withValues(alpha: 0.35)
+            : const Color(0xFFD1FAE5),
+        countBg = isDark
+            ? const Color(0xFF064E3B).withValues(alpha: 0.40)
+            : const Color(0xFFD1FAE5);
 }
 
 // ===========================================================

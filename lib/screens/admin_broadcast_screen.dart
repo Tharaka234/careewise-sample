@@ -3,14 +3,49 @@ import 'package:flutter/material.dart';
 import 'package:careerwise_sample/services/notification_service.dart';
 import 'package:careerwise_sample/services/notification_types.dart';
 import 'package:careerwise_sample/services/push_sender.dart';
+import 'admin_profile_screen.dart';
+
+// ==========================================================
+// DYNAMIC THEME COLOR PALETTE (PREMIUM GREEN THEME)
+// ==========================================================
+
+class _BroadcastColors {
+  final bool isDark;
+
+  const _BroadcastColors({required this.isDark});
+
+  // Backgrounds:
+  // Light: Soft emerald-mint tint (#F0FDF4)
+  // Dark: Deep luxurious obsidian forest green (#0A140F)
+  Color get pageBg => isDark ? const Color(0xFF0A140F) : const Color(0xFFF0FDF4);
+  Color get cardBg => isDark ? const Color(0xFF13231B) : Colors.white;
+  Color get cardBorder => isDark ? const Color(0xFF1E382A) : const Color(0xFFD1FAE5);
+  Color get cardSurface => isDark ? const Color(0xFF0F1E17) : const Color(0xFFF8FAF9);
+
+  // Inputs
+  Color get inputBg => isDark ? const Color(0xFF0E1A14) : const Color(0xFFF7FAF8);
+  Color get inputBorder => isDark ? const Color(0xFF1E382A) : const Color(0xFFE2EFE7);
+
+  // Brand / Emerald Accent Colors
+  Color get primary => isDark ? const Color(0xFF10B981) : const Color(0xFF059669);
+  Color get primaryAccent => isDark ? const Color(0xFF34D399) : const Color(0xFF10B981);
+  Color get primaryDark => isDark ? const Color(0xFF059669) : const Color(0xFF047857);
+
+  // Text Colors
+  Color get textPrimary => isDark ? const Color(0xFFF0FDF4) : const Color(0xFF0F241B);
+  Color get textSecondary => isDark ? const Color(0xFFA7C1B3) : const Color(0xFF4B6354);
+  Color get textMuted => isDark ? const Color(0xFF6B7280) : const Color(0xFF94A3B8);
+
+  // Icon Boxes & Badges
+  Color get iconBoxBg => isDark ? const Color(0x3310B981) : const Color(0x1F059669);
+}
 
 /// Admin-only screen used to send CareerWise announcements.
 class AdminBroadcastScreen extends StatefulWidget {
   const AdminBroadcastScreen({super.key});
 
   @override
-  State<AdminBroadcastScreen> createState() =>
-      _AdminBroadcastScreenState();
+  State<AdminBroadcastScreen> createState() => _AdminBroadcastScreenState();
 }
 
 class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
@@ -19,27 +54,9 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
 
-  // =========================================================
-  // COLORS
-  // =========================================================
-
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryDark = Color(0xFF1E3A8A);
-  static const Color indigo = Color(0xFF4F46E5);
-
-  static const Color background = Color(0xFFF6F8FC);
-  static const Color textPrimary = Color(0xFF172033);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color border = Color(0xFFE8EDF5);
-
-  // =========================================================
-  // STATE
-  // =========================================================
-
   static const String _categoryPrefix = 'category:';
 
   String _audience = NotificationTopics.allUsers;
-
   bool _isSending = false;
 
   @override
@@ -53,14 +70,12 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   // HELPERS
   // =========================================================
 
-  bool get _isCategoryAudience =>
-      _audience.startsWith(_categoryPrefix);
+  bool get _isCategoryAudience => _audience.startsWith(_categoryPrefix);
 
   String? get _selectedCategory {
     if (!_isCategoryAudience) {
       return null;
     }
-
     return _audience.substring(_categoryPrefix.length);
   }
 
@@ -68,15 +83,12 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
     if (_audience == NotificationTopics.allUsers) {
       return 'Everyone';
     }
-
     if (_audience == NotificationTopics.admins) {
       return 'Admins only';
     }
-
     if (_isCategoryAudience) {
       return _selectedCategory ?? 'Selected category';
     }
-
     return 'Selected audience';
   }
 
@@ -84,50 +96,44 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
     if (_audience == NotificationTopics.admins) {
       return Icons.admin_panel_settings_outlined;
     }
-
     if (_isCategoryAudience) {
       return Icons.work_outline_rounded;
     }
-
     return Icons.groups_2_outlined;
   }
 
-  Color get _audienceColor {
+  Color _getAudienceColor(_BroadcastColors colors) {
     if (_audience == NotificationTopics.admins) {
-      return const Color(0xFF7C3AED);
+      return const Color(0xFF8B5CF6);
     }
-
     if (_isCategoryAudience) {
-      return const Color(0xFF0F766E);
+      return colors.isDark ? const Color(0xFF34D399) : const Color(0xFF0F766E);
     }
-
-    return primary;
+    return colors.primary;
   }
 
-  Color get _audienceBackground {
+  Color _getAudienceBackground(_BroadcastColors colors) {
     if (_audience == NotificationTopics.admins) {
-      return const Color(0xFFF4EEFF);
+      return colors.isDark ? const Color(0x338B5CF6) : const Color(0xFFF3E8FF);
     }
-
     if (_isCategoryAudience) {
-      return const Color(0xFFECFDF5);
+      return colors.isDark ? const Color(0x3310B981) : const Color(0xFFECFDF5);
     }
-
-    return const Color(0xFFEEF4FF);
+    return colors.isDark ? const Color(0x33059669) : const Color(0xFFE8F7F0);
   }
 
   // =========================================================
   // SEND ANNOUNCEMENT
   // =========================================================
 
-  Future<void> _send() async {
+  Future<void> _send(_BroadcastColors colors) async {
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final confirmed = await _showConfirmation();
+    final confirmed = await _showConfirmation(colors);
 
     if (confirmed != true) {
       return;
@@ -139,18 +145,13 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
 
     try {
       final result =
-      await NotificationService.instance.broadcastAnnouncement(
+          await NotificationService.instance.broadcastAnnouncement(
         title: _titleController.text.trim(),
         body: _bodyController.text.trim(),
-
-        // Keep the same behavior as your existing implementation.
         topic: _isCategoryAudience
             ? NotificationTopics.allUsers
             : _audience,
-
-        category: _isCategoryAudience
-            ? _selectedCategory
-            : null,
+        category: _isCategoryAudience ? _selectedCategory : null,
       );
 
       if (!mounted) return;
@@ -158,20 +159,16 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
       switch (result) {
         case PushResult.sent:
           _showSuccessMessage();
-
           _titleController.clear();
           _bodyController.clear();
-
           setState(() {
             _audience = NotificationTopics.allUsers;
           });
-
           break;
 
         case PushResult.notConfigured:
           _showSnack(
-            'Announcement saved to history, but push notification '
-                'delivery is not configured.',
+            'Announcement saved to history, but push notification delivery is not configured.',
             error: true,
           );
           break;
@@ -184,9 +181,8 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-
       _showSnack(
-        'Something went wrong while sending the announcement.',
+        'Something went wrong while sending the announcement: $e',
         error: true,
       );
     } finally {
@@ -199,10 +195,10 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   }
 
   // =========================================================
-  // CONFIRM SEND
+  // CONFIRM SEND BOTTOM SHEET
   // =========================================================
 
-  Future<bool?> _showConfirmation() {
+  Future<bool?> _showConfirmation(_BroadcastColors colors) {
     return showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -210,102 +206,108 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
       builder: (context) {
         return SafeArea(
           child: Container(
-            margin: const EdgeInsets.all(12),
-            padding: const EdgeInsets.fromLTRB(
-              22,
-              12,
-              22,
-              24,
-            ),
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colors.cardBg,
               borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: colors.cardBorder, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 28,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Handle bar
                 Container(
-                  width: 42,
+                  width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD7DDE7),
+                    color: colors.cardBorder,
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
 
-                const SizedBox(height: 25),
+                const SizedBox(height: 22),
 
+                // Icon badge
                 Container(
-                  width: 70,
-                  height: 70,
+                  width: 66,
+                  height: 66,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEF4FF),
+                    color: colors.iconBoxBg,
                     borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: colors.primary.withValues(alpha: 0.3),
+                      width: 1.2,
+                    ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.campaign_rounded,
-                    color: primary,
+                    color: colors.primary,
                     size: 34,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                Text(
+                  'Send Announcement?',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text(
+                  'This broadcast will be dispatched to $_audienceName.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 13,
+                    height: 1.45,
                   ),
                 ),
 
                 const SizedBox(height: 18),
 
-                const Text(
-                  'Send announcement?',
-                  style: TextStyle(
-                    color: textPrimary,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                Text(
-                  'This announcement will be sent to $_audienceName.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: textSecondary,
-                    fontSize: 13,
-                    height: 1.5,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
+                // Mini preview container
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: colors.cardSurface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFE8EDF5),
-                    ),
+                    border: Border.all(color: colors.cardBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         _titleController.text.trim(),
-                        style: const TextStyle(
-                          color: textPrimary,
+                        style: TextStyle(
+                          color: colors.textPrimary,
                           fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-
-                      const SizedBox(height: 6),
-
+                      const SizedBox(height: 5),
                       Text(
                         _bodyController.text.trim(),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: textSecondary,
-                          fontSize: 12,
-                          height: 1.45,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 12.5,
+                          height: 1.4,
                         ),
                       ),
                     ],
@@ -318,47 +320,66 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.pop(context, false);
-                        },
+                        onPressed: () => Navigator.pop(context, false),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: textPrimary,
-                          minimumSize: const Size(0, 52),
-                          side: const BorderSide(
-                            color: Color(0xFFE2E8F0),
-                          ),
+                          foregroundColor: colors.textPrimary,
+                          minimumSize: const Size(0, 50),
+                          side: BorderSide(color: colors.cardBorder, width: 1.2),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                         child: const Text(
                           'Cancel',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context, true);
-                        },
-                        icon: const Icon(
-                          Icons.send_rounded,
-                          size: 17,
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: colors.isDark
+                                ? const [Color(0xFF059669), Color(0xFF047857)]
+                                : const [Color(0xFF059669), Color(0xFF10B981)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colors.primary.withValues(alpha: 0.35),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        label: const Text('Send now'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          minimumSize: const Size(0, 52),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () => Navigator.pop(context, true),
+                            child: const Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.send_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Send Now',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -374,7 +395,7 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   }
 
   // =========================================================
-  // SUCCESS
+  // SUCCESS / ERROR NOTIFICATIONS
   // =========================================================
 
   void _showSuccessMessage() {
@@ -384,9 +405,9 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
         SnackBar(
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
-          backgroundColor: const Color(0xFF15803D),
+          backgroundColor: const Color(0xFF10B981),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
           content: const Row(
             children: [
@@ -394,10 +415,10 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
                 Icons.check_circle_outline_rounded,
                 color: Colors.white,
               ),
-              SizedBox(width: 11),
+              SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Announcement sent successfully.',
+                  'Announcement broadcast sent successfully!',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -411,9 +432,9 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   }
 
   void _showSnack(
-      String message, {
-        bool error = false,
-      }) {
+    String message, {
+    bool error = false,
+  }) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
@@ -424,9 +445,9 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
           margin: const EdgeInsets.all(16),
           backgroundColor: error
               ? const Color(0xFFDC2626)
-              : const Color(0xFF172033),
+              : const Color(0xFF10B981),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
           content: Row(
             children: [
@@ -436,9 +457,7 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
                     : Icons.info_outline_rounded,
                 color: Colors.white,
               ),
-
               const SizedBox(width: 10),
-
               Expanded(
                 child: Text(
                   message,
@@ -460,93 +479,89 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: background,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(
-            child: _buildHeader(),
-          ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: AdminThemeManager.isDarkMode,
+      builder: (context, isDark, _) {
+        final colors = _BroadcastColors(isDark: isDark);
 
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              18,
-              22,
-              18,
-              40,
-            ),
-            sliver: SliverToBoxAdapter(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 760,
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                      children: [
-                        _sectionLabel(
-                          'AUDIENCE',
-                          'Choose who should receive this announcement',
-                        ),
+        return Scaffold(
+          backgroundColor: colors.pageBg,
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: _buildHeader(colors),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(18, 22, 18, 40),
+                sliver: SliverToBoxAdapter(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 760),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _sectionLabel(
+                              'AUDIENCE',
+                              'Choose who should receive this broadcast alert',
+                              colors,
+                            ),
+                            const SizedBox(height: 11),
+                            _audienceCard(colors),
 
-                        const SizedBox(height: 11),
+                            const SizedBox(height: 24),
 
-                        _audienceCard(),
+                            _sectionLabel(
+                              'MESSAGE DETAILS',
+                              'Write a clear, concise and impactful announcement',
+                              colors,
+                            ),
+                            const SizedBox(height: 11),
+                            _messageCard(colors),
 
-                        const SizedBox(height: 25),
+                            const SizedBox(height: 24),
 
-                        _sectionLabel(
-                          'MESSAGE',
-                          'Write a clear and useful announcement',
-                        ),
+                            _previewCard(colors),
 
-                        const SizedBox(height: 11),
+                            const SizedBox(height: 26),
 
-                        _messageCard(),
+                            _sendButton(colors),
 
-                        const SizedBox(height: 20),
+                            const SizedBox(height: 14),
 
-                        _previewCard(),
-
-                        const SizedBox(height: 24),
-
-                        _sendButton(),
-
-                        const SizedBox(height: 14),
-
-                        const Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.shield_outlined,
-                                size: 13,
-                                color: Color(0xFF94A3B8),
+                            Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.shield_outlined,
+                                    size: 14,
+                                    color: colors.textMuted,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Only verified CareerWise administrators can send broadcast announcements',
+                                    style: TextStyle(
+                                      color: colors.textMuted,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Only administrators can send announcements',
-                                style: TextStyle(
-                                  color: Color(0xFF94A3B8),
-                                  fontSize: 10.5,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -554,25 +569,39 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   // HEADER
   // =========================================================
 
-  Widget _buildHeader() {
+  Widget _buildHeader(_BroadcastColors colors) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            primaryDark,
-            primary,
-            indigo,
-          ],
+          colors: colors.isDark
+              ? const [
+                  Color(0xFF03442C),
+                  Color(0xFF065F46),
+                  Color(0xFF047857),
+                ]
+              : const [
+                  Color(0xFF047857),
+                  Color(0xFF059669),
+                  Color(0xFF10B981),
+                ],
         ),
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.primary.withValues(alpha: colors.isDark ? 0.35 : 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Stack(
         children: [
+          // Background ambient circles
           Positioned(
             right: -45,
             top: -55,
@@ -581,11 +610,10 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
               height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
             ),
           ),
-
           Positioned(
             left: -55,
             bottom: -70,
@@ -594,20 +622,7 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
               height: 170,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-              ),
-            ),
-          ),
-
-          Positioned(
-            right: 75,
-            bottom: 30,
-            child: Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -615,36 +630,30 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
           SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                14,
-                20,
-                27,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 26),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Top Row: Back button, Admin Badge, and Theme Toggle button
                   Row(
                     children: [
                       _headerButton(
                         icon: Icons.arrow_back_ios_new_rounded,
-                        onTap: () {
-                          Navigator.maybePop(context);
-                        },
+                        onTap: () => Navigator.maybePop(context),
                       ),
-
                       const Spacer(),
 
+                      // Admin pill badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12),
+                          color: Colors.white.withValues(alpha: 0.16),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.13),
+                            color: Colors.white.withValues(alpha: 0.25),
                           ),
                         ),
                         child: const Row(
@@ -652,69 +661,128 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
                           children: [
                             Icon(
                               Icons.admin_panel_settings_outlined,
-                              color: Color(0xFFDCE7FF),
+                              color: Colors.white,
                               size: 15,
                             ),
                             SizedBox(width: 6),
                             Text(
-                              'ADMIN',
+                              'ADMIN BROADCAST',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 10,
-                                letterSpacing: 0.7,
+                                fontSize: 10.5,
+                                letterSpacing: 0.8,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
                           ],
                         ),
                       ),
+
+                      const SizedBox(width: 10),
+
+                      // Interactive Theme Toggle Button in Header
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.22),
+                          ),
+                        ),
+                        child: IconButton(
+                          tooltip: colors.isDark
+                              ? 'Switch to Light Theme'
+                              : 'Switch to Dark Theme',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 40,
+                            minHeight: 40,
+                          ),
+                          icon: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 280),
+                            transitionBuilder: (child, animation) {
+                              return RotationTransition(
+                                turns: child.key == const ValueKey('dark_icon')
+                                    ? Tween<double>(begin: 0.75, end: 1.0)
+                                        .animate(animation)
+                                    : Tween<double>(begin: 0.25, end: 0.0)
+                                        .animate(animation),
+                                child: ScaleTransition(
+                                  scale: animation,
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: colors.isDark
+                                ? const Icon(
+                                    Icons.wb_sunny_rounded,
+                                    key: ValueKey('dark_icon'),
+                                    color: Color(0xFFFDE047),
+                                    size: 20,
+                                  )
+                                : const Icon(
+                                    Icons.nightlight_round,
+                                    key: ValueKey('light_icon'),
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                          ),
+                          onPressed: () {
+                            AdminThemeManager.isDarkMode.value =
+                                !AdminThemeManager.isDarkMode.value;
+                          },
+                        ),
+                      ),
                     ],
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
 
+                  // Header icon and titles
                   Row(
                     children: [
                       Container(
-                        width: 59,
-                        height: 59,
+                        width: 58,
+                        height: 58,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.14),
+                          color: Colors.white.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(19),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.16),
+                            color: Colors.white.withValues(alpha: 0.28),
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: const Icon(
                           Icons.campaign_outlined,
                           color: Colors.white,
-                          size: 30,
+                          size: 32,
                         ),
                       ),
-
                       const SizedBox(width: 16),
-
                       const Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Send Announcement',
+                              'Broadcast Announcement',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 25,
+                                fontSize: 23,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: -0.5,
+                                letterSpacing: -0.4,
                               ),
                             ),
-
-                            SizedBox(height: 5),
-
+                            SizedBox(height: 4),
                             Text(
-                              'Share important updates with CareerWise users',
+                              'Send instant push notifications and alerts to platform users',
                               style: TextStyle(
-                                color: Color(0xFFDCE7FF),
+                                color: Color(0xFFE2FBEA),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -725,15 +793,19 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 23),
+                  const SizedBox(height: 20),
 
+                  // Informational tip container
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.11),
-                      borderRadius: BorderRadius.circular(17),
+                      color: Colors.white.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.12),
+                        color: Colors.white.withValues(alpha: 0.18),
                       ),
                     ),
                     child: const Row(
@@ -742,18 +814,15 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
                         Icon(
                           Icons.info_outline_rounded,
                           color: Colors.white,
-                          size: 19,
+                          size: 18,
                         ),
-
                         SizedBox(width: 10),
-
                         Expanded(
                           child: Text(
-                            'Announcements are sent as push notifications '
-                                'and also saved to notification history.',
+                            'Announcements are instantly broadcasted as push notifications to devices and securely archived in candidates\' notification history.',
                             style: TextStyle(
-                              color: Color(0xFFE5EDFF),
-                              fontSize: 11.5,
+                              color: Color(0xFFF0FDF4),
+                              fontSize: 12,
                               height: 1.45,
                             ),
                           ),
@@ -775,25 +844,25 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white.withOpacity(0.12),
+      color: Colors.white.withValues(alpha: 0.16),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          width: 44,
-          height: 44,
+          width: 42,
+          height: 42,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: Colors.white.withOpacity(0.14),
+              color: Colors.white.withValues(alpha: 0.22),
             ),
           ),
           child: Icon(
             icon,
             color: Colors.white,
-            size: 20,
+            size: 19,
           ),
         ),
       ),
@@ -805,31 +874,30 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   // =========================================================
 
   Widget _sectionLabel(
-      String title,
-      String subtitle,
-      ) {
+    String title,
+    String subtitle,
+    _BroadcastColors colors,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 10.5,
+            style: TextStyle(
+              color: colors.primary,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
-              letterSpacing: 1.15,
+              letterSpacing: 1.1,
             ),
           ),
-
-          const SizedBox(height: 4),
-
+          const SizedBox(height: 3),
           Text(
             subtitle,
-            style: const TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 12,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12.5,
             ),
           ),
         ],
@@ -841,8 +909,12 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   // AUDIENCE CARD
   // =========================================================
 
-  Widget _audienceCard() {
+  Widget _audienceCard(_BroadcastColors colors) {
+    final audColor = _getAudienceColor(colors);
+    final audBg = _getAudienceBackground(colors);
+
     return _card(
+      colors: colors,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -850,43 +922,42 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 50,
-                height: 50,
+                duration: const Duration(milliseconds: 220),
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: _audienceBackground,
-                  borderRadius: BorderRadius.circular(16),
+                  color: audBg,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: audColor.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: Icon(
                   _audienceIcon,
-                  color: _audienceColor,
-                  size: 25,
+                  color: audColor,
+                  size: 24,
                 ),
               ),
-
               const SizedBox(width: 14),
-
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Announcement audience',
+                      'Target Audience',
                       style: TextStyle(
-                        color: textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                        color: colors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    SizedBox(height: 5),
-
+                    const SizedBox(height: 3),
                     Text(
-                      'Select everyone, administrators, or a specific job category.',
+                      'Choose whether to alert all users, administrators, or users in a particular industry category.',
                       style: TextStyle(
-                        color: textSecondary,
-                        fontSize: 12,
-                        height: 1.45,
+                        color: colors.textSecondary,
+                        fontSize: 12.5,
+                        height: 1.4,
                       ),
                     ),
                   ],
@@ -898,107 +969,111 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
           const SizedBox(height: 18),
 
           DropdownButtonFormField<String>(
-            value: _audience,
+            initialValue: _audience,
             isExpanded: true,
+            dropdownColor: colors.cardBg,
             borderRadius: BorderRadius.circular(16),
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
             decoration: _inputDecoration(
-              label: 'Audience',
+              label: 'Selected Audience',
               icon: Icons.people_alt_outlined,
+              colors: colors,
             ),
             items: [
-              const DropdownMenuItem<String>(
+              DropdownMenuItem<String>(
                 value: NotificationTopics.allUsers,
                 child: Row(
                   children: [
                     Icon(
                       Icons.groups_2_outlined,
-                      size: 19,
-                      color: primary,
+                      size: 20,
+                      color: colors.primary,
                     ),
-                    SizedBox(width: 10),
-                    Text('Everyone'),
+                    const SizedBox(width: 10),
+                    const Text('Everyone (All registered users)'),
                   ],
                 ),
               ),
-
               const DropdownMenuItem<String>(
                 value: NotificationTopics.admins,
                 child: Row(
                   children: [
                     Icon(
                       Icons.admin_panel_settings_outlined,
-                      size: 19,
-                      color: Color(0xFF7C3AED),
+                      size: 20,
+                      color: Color(0xFF8B5CF6),
                     ),
                     SizedBox(width: 10),
                     Text('Admins only'),
                   ],
                 ),
               ),
-
-              ...JobCategories.all.map(
-                    (category) {
-                  return DropdownMenuItem<String>(
-                    value: '$_categoryPrefix$category',
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.work_outline_rounded,
-                          size: 18,
-                          color: Color(0xFF0F766E),
+              ...JobCategories.all.map((category) {
+                return DropdownMenuItem<String>(
+                  value: '$_categoryPrefix$category',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.work_outline_rounded,
+                        size: 19,
+                        color: colors.isDark
+                            ? const Color(0xFF34D399)
+                            : const Color(0xFF0F766E),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          category,
+                          overflow: TextOverflow.ellipsis,
                         ),
-
-                        const SizedBox(width: 10),
-
-                        Expanded(
-                          child: Text(
-                            category,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
             onChanged: _isSending
                 ? null
                 : (value) {
-              if (value == null) return;
-
-              setState(() {
-                _audience = value;
-              });
-            },
+                    if (value == null) return;
+                    setState(() {
+                      _audience = value;
+                    });
+                  },
           ),
 
           const SizedBox(height: 14),
 
+          // Live pill status summary
           AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             width: double.infinity,
-            padding: const EdgeInsets.all(13),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
-              color: _audienceBackground,
+              color: audBg,
               borderRadius: BorderRadius.circular(13),
+              border: Border.all(
+                color: audColor.withValues(alpha: 0.2),
+              ),
             ),
             child: Row(
               children: [
                 Icon(
                   _audienceIcon,
-                  color: _audienceColor,
+                  color: audColor,
                   size: 17,
                 ),
-
                 const SizedBox(width: 9),
-
                 Expanded(
                   child: Text(
                     _audienceDescription(),
                     style: TextStyle(
-                      color: _audienceColor,
-                      fontSize: 11.5,
+                      color: audColor,
+                      fontSize: 12,
                       height: 1.4,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1016,55 +1091,48 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
     if (_audience == NotificationTopics.admins) {
       return 'Only CareerWise administrators will receive this announcement.';
     }
-
     if (_isCategoryAudience) {
-      return 'This announcement targets users interested in '
-          '${_selectedCategory ?? 'this category'}.';
+      return 'Targeting candidates subscribed or interested in ${_selectedCategory ?? 'this category'}.';
     }
-
-    return 'This announcement is intended for CareerWise users '
-        'who receive platform announcements.';
+    return 'Broadcast will be delivered to every active user across the platform.';
   }
 
   // =========================================================
   // MESSAGE CARD
   // =========================================================
 
-  Widget _messageCard() {
+  Widget _messageCard(_BroadcastColors colors) {
     return _card(
+      colors: colors,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               _IconBox(
                 icon: Icons.edit_note_rounded,
-                iconColor: primary,
-                background: Color(0xFFEEF4FF),
+                iconColor: colors.primary,
+                background: colors.iconBoxBg,
               ),
-
-              SizedBox(width: 13),
-
+              const SizedBox(width: 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Announcement details',
+                      'Announcement Content',
                       style: TextStyle(
-                        color: textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                        color: colors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    SizedBox(height: 4),
-
+                    const SizedBox(height: 3),
                     Text(
-                      'Keep your message short, clear and informative.',
+                      'Keep your notification title and body engaging, accurate, and easy to read.',
                       style: TextStyle(
-                        color: textSecondary,
-                        fontSize: 12,
+                        color: colors.textSecondary,
+                        fontSize: 12.5,
                       ),
                     ),
                   ],
@@ -1075,11 +1143,11 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
 
           const SizedBox(height: 20),
 
-          const Text(
-            'Title',
+          Text(
+            'Announcement Title *',
             style: TextStyle(
-              color: textPrimary,
-              fontSize: 12.5,
+              color: colors.textPrimary,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1091,29 +1159,32 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
             maxLength: 60,
             enabled: !_isSending,
             textCapitalization: TextCapitalization.sentences,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w500,
+            ),
             decoration: _inputDecoration(
-              hint: 'e.g. CareerWise Career Fair 2026',
+              hint: 'e.g. CareerWise Tech Career Fair 2026',
               icon: Icons.title_rounded,
+              colors: colors,
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Please enter an announcement title';
               }
-
               return null;
             },
-            onChanged: (_) {
-              setState(() {});
-            },
+            onChanged: (_) => setState(() {}),
           ),
 
           const SizedBox(height: 8),
 
-          const Text(
-            'Message',
+          Text(
+            'Announcement Message *',
             style: TextStyle(
-              color: textPrimary,
-              fontSize: 12.5,
+              color: colors.textPrimary,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1122,27 +1193,30 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
 
           TextFormField(
             controller: _bodyController,
-            maxLength: 200,
+            maxLength: 250,
             maxLines: 5,
             minLines: 4,
             enabled: !_isSending,
             textCapitalization: TextCapitalization.sentences,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 14.5,
+              height: 1.45,
+            ),
             decoration: _inputDecoration(
               hint:
-              'Write the announcement message users should receive...',
+                  'Write the announcement message details that users will read upon receiving...',
               icon: Icons.notes_rounded,
               alignLabelWithHint: true,
+              colors: colors,
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Please enter an announcement message';
               }
-
               return null;
             },
-            onChanged: (_) {
-              setState(() {});
-            },
+            onChanged: (_) => setState(() {}),
           ),
         ],
       ),
@@ -1150,123 +1224,153 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   }
 
   // =========================================================
-  // PREVIEW
+  // PREVIEW CARD (MOBILE NOTIFICATION SIMULATION)
   // =========================================================
 
-  Widget _previewCard() {
+  Widget _previewCard(_BroadcastColors colors) {
     final title = _titleController.text.trim().isEmpty
         ? 'Your announcement title'
         : _titleController.text.trim();
 
     final body = _bodyController.text.trim().isEmpty
-        ? 'Your announcement message will appear here.'
+        ? 'Your announcement message will appear here in the preview.'
         : _bodyController.text.trim();
+
+    final audColor = _getAudienceColor(colors);
+    final audBg = _getAudienceBackground(colors);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel(
-          'PREVIEW',
-          'How the announcement will appear to users',
+          'LIVE PREVIEW',
+          'Simulated appearance on user mobile devices',
+          colors,
         ),
-
         const SizedBox(height: 11),
-
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(17),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFFFFFFF),
-                Color(0xFFF9FAFF),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(21),
-            border: Border.all(
-              color: border,
-            ),
+            color: colors.cardBg,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: colors.cardBorder, width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0F172A).withOpacity(0.035),
-                blurRadius: 18,
+                color: (colors.isDark ? Colors.black : const Color(0xFF059669))
+                    .withValues(alpha: colors.isDark ? 0.35 : 0.05),
+                blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
             ],
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4EEFF),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.campaign_outlined,
-                  color: Color(0xFF7C3AED),
-                  size: 25,
-                ),
+              // Top preview row
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: colors.isDark
+                            ? const [Color(0xFF047857), Color(0xFF059669)]
+                            : const [Color(0xFF059669), Color(0xFF10B981)],
+                      ),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(
+                      Icons.campaign_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'CAREERWISE',
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontSize: 10,
+                                letterSpacing: 0.9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 3,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: colors.textMuted,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'NOW',
+                              style: TextStyle(
+                                color: colors.textMuted,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
 
-              const SizedBox(width: 13),
+              const SizedBox(height: 10),
 
-              Expanded(
+              Padding(
+                padding: const EdgeInsets.only(left: 56),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'CAREERWISE',
-                      style: TextStyle(
-                        color: Color(0xFF7C3AED),
-                        fontSize: 9.5,
-                        letterSpacing: 0.9,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: textPrimary,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-
-                    const SizedBox(height: 5),
-
                     Text(
                       body,
-                      style: const TextStyle(
-                        color: textSecondary,
-                        fontSize: 12,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 13,
                         height: 1.45,
                       ),
                     ),
-
-                    const SizedBox(height: 11),
-
+                    const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
+                        horizontal: 10,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _audienceBackground,
+                        color: audBg,
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: audColor.withValues(alpha: 0.25),
+                        ),
                       ),
                       child: Text(
-                        _audienceName,
+                        'Target: $_audienceName',
                         style: TextStyle(
-                          color: _audienceColor,
-                          fontSize: 9.5,
+                          color: audColor,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1282,67 +1386,84 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   }
 
   // =========================================================
-  // SEND BUTTON
+  // SEND BUTTON (LUSH EMERALD GRADIENT)
   // =========================================================
 
-  Widget _sendButton() {
-    return SizedBox(
+  Widget _sendButton(_BroadcastColors colors) {
+    return Container(
       width: double.infinity,
-      height: 57,
-      child: ElevatedButton(
-        onPressed: _isSending ? null : _send,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor:
-          const Color(0xFFB8C8E8),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: colors.isDark
+              ? const [Color(0xFF059669), Color(0xFF047857)]
+              : const [Color(0xFF059669), Color(0xFF10B981)],
         ),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          child: _isSending
-              ? const Row(
-            key: ValueKey('sending'),
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(width: 11),
-              Text(
-                'Sending announcement...',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          )
-              : const Row(
-            key: ValueKey('send'),
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.send_rounded,
-                size: 20,
-              ),
-              SizedBox(width: 9),
-              Text(
-                'Send Announcement',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: colors.primary.withValues(
+              alpha: colors.isDark ? 0.35 : 0.3,
+            ),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: _isSending ? null : () => _send(colors),
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _isSending
+                  ? const Row(
+                      key: ValueKey('sending'),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Broadcasting announcement...',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Row(
+                      key: ValueKey('send'),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.send_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Send Announcement',
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),
@@ -1358,69 +1479,62 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
     String? hint,
     required IconData icon,
     bool alignLabelWithHint = false,
+    required _BroadcastColors colors,
   }) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
       alignLabelWithHint: alignLabelWithHint,
-
-      labelStyle: const TextStyle(
-        color: textSecondary,
-        fontSize: 12.5,
+      labelStyle: TextStyle(
+        color: colors.textSecondary,
+        fontSize: 13,
       ),
-
-      hintStyle: const TextStyle(
-        color: Color(0xFFADB7C6),
-        fontSize: 12.5,
+      hintStyle: TextStyle(
+        color: colors.textMuted,
+        fontSize: 13.5,
       ),
-
       prefixIcon: Icon(
         icon,
-        color: primary,
+        color: colors.primary,
         size: 20,
       ),
-
       filled: true,
-      fillColor: const Color(0xFFF9FBFD),
-
+      fillColor: colors.inputBg,
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: 15,
+        horizontal: 16,
         vertical: 16,
       ),
-
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: border,
+        borderSide: BorderSide(
+          color: colors.inputBorder,
+          width: 1.2,
         ),
       ),
-
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: border,
+        borderSide: BorderSide(
+          color: colors.inputBorder,
+          width: 1.2,
         ),
       ),
-
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: primary,
-          width: 1.6,
+        borderSide: BorderSide(
+          color: colors.primary,
+          width: 1.8,
         ),
       ),
-
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
-          color: Color(0xFFEF4444),
+          color: Colors.redAccent,
         ),
       ),
-
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
-          color: Color(0xFFEF4444),
+          color: Colors.redAccent,
           width: 1.5,
         ),
       ),
@@ -1428,26 +1542,28 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   }
 
   // =========================================================
-  // CARD
+  // CARD CONTAINER
   // =========================================================
 
   Widget _card({
     required Widget child,
+    required _BroadcastColors colors,
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(17),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(21),
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: border,
+          color: colors.cardBorder,
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A)
-                .withOpacity(0.035),
-            blurRadius: 18,
+            color: (colors.isDark ? Colors.black : const Color(0xFF059669))
+                .withValues(alpha: colors.isDark ? 0.35 : 0.05),
+            blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
@@ -1475,11 +1591,11 @@ class _IconBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 49,
-      height: 49,
+      width: 46,
+      height: 46,
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Icon(
         icon,

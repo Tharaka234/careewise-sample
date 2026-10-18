@@ -18,14 +18,14 @@ class _NotificationSettingsScreenState
   // COLORS
   // =========================================================
 
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryDark = Color(0xFF1E3A8A);
-  static const Color indigo = Color(0xFF4F46E5);
+  static const Color primary = Color(0xFF059669);
+  static const Color primaryDark = Color(0xFF044E36);
+  static const Color indigo = Color(0xFF10B981);
 
-  static const Color background = Color(0xFFF6F8FC);
-  static const Color textPrimary = Color(0xFF172033);
+  static const Color background = Color(0xFFF0FDF4);
+  static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
-  static const Color border = Color(0xFFE8EDF5);
+  static const Color border = Color(0xFFD1FAE5);
 
   // =========================================================
   // STATE
@@ -402,9 +402,9 @@ class _NotificationSettingsScreenState
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1E3A8A),
-            Color(0xFF2563EB),
-            Color(0xFF4F46E5),
+            Color(0xFF044E36),
+            Color(0xFF059669),
+            Color(0xFF10B981),
           ],
         ),
         borderRadius: BorderRadius.only(
@@ -422,7 +422,7 @@ class _NotificationSettingsScreenState
               height: 170,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -435,7 +435,7 @@ class _NotificationSettingsScreenState
               height: 170,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -448,7 +448,7 @@ class _NotificationSettingsScreenState
               height: 75,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -469,7 +469,7 @@ class _NotificationSettingsScreenState
                     children: [
                       _headerButton(
                         Icons.arrow_back_ios_new_rounded,
-                            () {
+                        () {
                           Navigator.maybePop(context);
                         },
                       ),
@@ -482,10 +482,10 @@ class _NotificationSettingsScreenState
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12),
+                          color: Colors.white.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.13),
+                            color: Colors.white.withValues(alpha: 0.13),
                           ),
                         ),
                         child: Row(
@@ -528,10 +528,10 @@ class _NotificationSettingsScreenState
                         width: 58,
                         height: 58,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.14),
+                          color: Colors.white.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(19),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.16),
+                            color: Colors.white.withValues(alpha: 0.16),
                           ),
                         ),
                         child: const Icon(
@@ -563,7 +563,7 @@ class _NotificationSettingsScreenState
                             Text(
                               'Personalize the updates you receive',
                               style: TextStyle(
-                                color: Color(0xFFDCE7FF),
+                                color: Color(0xFFD1FAE5),
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -580,10 +580,10 @@ class _NotificationSettingsScreenState
                     width: double.infinity,
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.11),
+                      color: Colors.white.withValues(alpha: 0.11),
                       borderRadius: BorderRadius.circular(17),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.12),
+                        color: Colors.white.withValues(alpha: 0.12),
                       ),
                     ),
                     child: Row(
@@ -622,11 +622,11 @@ class _NotificationSettingsScreenState
   }
 
   Widget _headerButton(
-      IconData icon,
-      VoidCallback onPressed,
-      ) {
+    IconData icon,
+    VoidCallback onPressed,
+  ) {
     return Material(
-      color: Colors.white.withOpacity(0.12),
+      color: Colors.white.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onPressed,
@@ -638,7 +638,7 @@ class _NotificationSettingsScreenState
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: Colors.white.withOpacity(0.14),
+              color: Colors.white.withValues(alpha: 0.14),
             ),
           ),
           child: Icon(
@@ -1352,7 +1352,7 @@ class _NotificationSettingsScreenState
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: Colors.white,
+          activeThumbColor: Colors.white,
           activeTrackColor: primary,
           inactiveThumbColor: Colors.white,
           inactiveTrackColor: const Color(0xFFCBD5E1),
@@ -1381,7 +1381,7 @@ class _NotificationSettingsScreenState
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.035),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.035),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),

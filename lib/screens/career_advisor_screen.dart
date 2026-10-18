@@ -1,12 +1,11 @@
-
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../services/ai_service.dart';
 import 'jobs_screen.dart';
+import 'admin_profile_screen.dart';
 
 class CareerAdvisorScreen extends StatefulWidget {
   const CareerAdvisorScreen({super.key});
@@ -17,13 +16,6 @@ class CareerAdvisorScreen extends StatefulWidget {
 }
 
 class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
-  static const Color navy = Color(0xFF172554);
-  static const Color primary = Color(0xFF5267E8);
-  static const Color violet = Color(0xFF8664E9);
-  static const Color background = Color(0xFFF5F7FC);
-  static const Color muted = Color(0xFF78839A);
-  static const Color darkText = Color(0xFF202B45);
-
   final _formKey = GlobalKey<FormState>();
   final _education = TextEditingController();
   final _skills = TextEditingController();
@@ -109,89 +101,183 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'CareerWise AI',
-          style: TextStyle(
-            color: navy,
-            fontSize: 19,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.4,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: navy),
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final horizontal = constraints.maxWidth > 700 ? 32.0 : 18.0;
+    return ValueListenableBuilder<bool>(
+      valueListenable: AdminThemeManager.isDarkMode,
+      builder: (context, isDark, _) {
+        final colors = _AdvisorColors(isDark: isDark);
 
-            return SingleChildScrollView(
-              keyboardDismissBehavior:
-              ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: EdgeInsets.fromLTRB(horizontal, 22, horizontal, 36),
+        return Scaffold(
+          backgroundColor: colors.pageBg,
+          appBar: AppBar(
+            backgroundColor: colors.pageBg,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 14),
               child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1000),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildHero(),
-                      const SizedBox(height: 24),
-                      _buildProgress(),
-                      const SizedBox(height: 22),
-                      _buildForm(constraints.maxWidth > 700),
-                      if (result != null) ...[
-                        const SizedBox(height: 32),
-                        _buildResults(),
-                      ],
-                      const SizedBox(height: 28),
-                      const Center(
-                        child: Text(
-                          'CAREERWISE  •  YOUR FUTURE, YOUR WAY',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: muted,
-                            letterSpacing: 1.4,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: colors.cardBg,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colors.cardBorder, width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black26
+                            : Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.arrow_back_rounded,
+                      color: colors.textPrimary,
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ),
               ),
-            );
-          },
-        ),
-      ),
+            ),
+            title: Text(
+              'CareerWise AI',
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: colors.cardBg,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: colors.cardBorder,
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black38
+                            : colors.primary.withValues(alpha: 0.12),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    tooltip: isDark
+                        ? 'Switch to Light Mode'
+                        : 'Switch to Dark Mode',
+                    icon: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, anim) => RotationTransition(
+                        turns: anim,
+                        child: FadeTransition(opacity: anim, child: child),
+                      ),
+                      child: isDark
+                          ? const Icon(
+                              Icons.wb_sunny_rounded,
+                              key: ValueKey('dark_sun'),
+                              color: Color(0xFFFDE047),
+                              size: 20,
+                            )
+                          : Icon(
+                              Icons.nightlight_round,
+                              key: const ValueKey('light_moon'),
+                              color: colors.primary,
+                              size: 20,
+                            ),
+                    ),
+                    onPressed: () {
+                      AdminThemeManager.toggleTheme();
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          body: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final horizontal = constraints.maxWidth > 700 ? 32.0 : 18.0;
+
+                return SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding:
+                      EdgeInsets.fromLTRB(horizontal, 16, horizontal, 36),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1000),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildHero(colors),
+                          const SizedBox(height: 24),
+                          _buildProgress(colors),
+                          const SizedBox(height: 22),
+                          _buildForm(constraints.maxWidth > 700, colors),
+                          if (result != null) ...[
+                            const SizedBox(height: 32),
+                            _buildResults(colors),
+                          ],
+                          const SizedBox(height: 28),
+                          Center(
+                            child: Text(
+                              'CAREERWISE  •  YOUR FUTURE, YOUR WAY',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: colors.textSecondary,
+                                letterSpacing: 1.4,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
-  // Premium gradient hero
-  Widget _buildHero() {
+  // Premium Emerald Gradient Hero
+  Widget _buildHero(_AdvisorColors colors) {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF182B69),
-            Color(0xFF4659C9),
-            Color(0xFF7958D8),
+            Color(0xFF044E36),
+            Color(0xFF059669),
+            Color(0xFF10B981),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: primary.withOpacity(0.22),
+            color: colors.primary.withValues(alpha: 0.28),
             blurRadius: 26,
             offset: const Offset(0, 12),
           ),
@@ -220,10 +306,10 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                     vertical: 7,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.13),
+                    color: Colors.white.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.22),
+                      color: Colors.white.withValues(alpha: 0.25),
                     ),
                   ),
                   child: const Row(
@@ -261,9 +347,9 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 const SizedBox(height: 12),
                 const Text(
                   'Discover career opportunities that match your '
-                      'skills, interests and ambitions.',
+                  'skills, interests and ambitions.',
                   style: TextStyle(
-                    color: Color(0xFFE2E7FF),
+                    color: Color(0xFFD1FAE5),
                     fontSize: 14,
                     height: 1.6,
                   ),
@@ -301,40 +387,45 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.055),
+        color: Colors.white.withValues(alpha: 0.06),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.09),
         ),
       ),
     );
   }
 
   // Progress indicator
-  Widget _buildProgress() {
+  Widget _buildProgress(_AdvisorColors colors) {
     return Row(
       children: [
-        _progressItem('01', 'Your profile', true),
+        _progressItem('01', 'Your profile', true, colors),
         Expanded(
           child: Container(
             height: 2,
             margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: const Color(0xFFDCE2F2),
+            color: colors.cardBorder,
           ),
         ),
-        _progressItem('02', 'AI analysis', false),
+        _progressItem('02', 'AI analysis', false, colors),
         Expanded(
           child: Container(
             height: 2,
             margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: const Color(0xFFDCE2F2),
+            color: colors.cardBorder,
           ),
         ),
-        _progressItem('03', 'Your results', false),
+        _progressItem('03', 'Your results', false, colors),
       ],
     );
   }
 
-  Widget _progressItem(String number, String label, bool active) {
+  Widget _progressItem(
+    String number,
+    String label,
+    bool active,
+    _AdvisorColors colors,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -343,16 +434,16 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
           height: 30,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: active ? primary : Colors.white,
+            color: active ? colors.primary : colors.cardBg,
             shape: BoxShape.circle,
             border: Border.all(
-              color: active ? primary : const Color(0xFFDCE2F2),
+              color: active ? colors.primary : colors.cardBorder,
             ),
           ),
           child: Text(
             number,
             style: TextStyle(
-              color: active ? Colors.white : muted,
+              color: active ? Colors.white : colors.textSecondary,
               fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
@@ -362,7 +453,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
         Text(
           label,
           style: TextStyle(
-            color: active ? navy : muted,
+            color: active ? colors.textPrimary : colors.textSecondary,
             fontSize: 11,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
           ),
@@ -372,16 +463,18 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
   }
 
   // Main form
-  Widget _buildForm(bool wide) {
+  Widget _buildForm(bool wide, _AdvisorColors colors) {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBg,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE8ECF5)),
+        border: Border.all(color: colors.cardBorder, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: navy.withOpacity(0.045),
+            color: colors.isDark
+                ? Colors.black26
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -392,20 +485,20 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Build your career profile',
               style: TextStyle(
-                color: navy,
+                color: colors.textPrimary,
                 fontSize: 21,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'A few details will help us personalize your recommendations.',
               style: TextStyle(
-                color: muted,
+                color: colors.textSecondary,
                 fontSize: 13,
                 height: 1.5,
               ),
@@ -423,6 +516,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                       icon: Icons.school_outlined,
                       controller: _education,
                       maxLines: 1,
+                      colors: colors,
                     ),
                   ),
                   const SizedBox(width: 18),
@@ -434,6 +528,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                       icon: Icons.code_rounded,
                       controller: _skills,
                       maxLines: 3,
+                      colors: colors,
                     ),
                   ),
                 ],
@@ -450,6 +545,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                       icon: Icons.favorite_border_rounded,
                       controller: _interests,
                       maxLines: 3,
+                      colors: colors,
                     ),
                   ),
                   const SizedBox(width: 18),
@@ -461,6 +557,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                       icon: Icons.flag_outlined,
                       controller: _goals,
                       maxLines: 3,
+                      colors: colors,
                     ),
                   ),
                 ],
@@ -473,6 +570,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 icon: Icons.school_outlined,
                 controller: _education,
                 maxLines: 1,
+                colors: colors,
               ),
               const SizedBox(height: 20),
               _buildField(
@@ -482,6 +580,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 icon: Icons.code_rounded,
                 controller: _skills,
                 maxLines: 3,
+                colors: colors,
               ),
               const SizedBox(height: 20),
               _buildField(
@@ -491,6 +590,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 icon: Icons.favorite_border_rounded,
                 controller: _interests,
                 maxLines: 3,
+                colors: colors,
               ),
               const SizedBox(height: 20),
               _buildField(
@@ -500,27 +600,28 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 icon: Icons.flag_outlined,
                 controller: _goals,
                 maxLines: 3,
+                colors: colors,
               ),
             ],
             const SizedBox(height: 26),
-            _buildGenerateButton(),
+            _buildGenerateButton(colors),
             const SizedBox(height: 13),
-            const Center(
+            Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.lock_outline,
                     size: 13,
-                    color: muted,
+                    color: colors.textSecondary,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       'Your information is used to personalize your advice.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: muted,
+                        color: colors.textSecondary,
                         fontSize: 11,
                       ),
                     ),
@@ -541,14 +642,15 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
     required IconData icon,
     required TextEditingController controller,
     required int maxLines,
+    required _AdvisorColors colors,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: darkText,
+          style: TextStyle(
+            color: colors.textPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
@@ -556,8 +658,8 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
         const SizedBox(height: 4),
         Text(
           helper,
-          style: const TextStyle(
-            color: muted,
+          style: TextStyle(
+            color: colors.textSecondary,
             fontSize: 11,
           ),
         ),
@@ -570,6 +672,10 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
           keyboardType: maxLines == 1
               ? TextInputType.text
               : TextInputType.multiline,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 14,
+          ),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
               return 'Please enter your ${label.toLowerCase()}.';
@@ -581,8 +687,10 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
           },
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-              color: Color(0xFFA1A9BB),
+            hintStyle: TextStyle(
+              color: colors.isDark
+                  ? Colors.white.withValues(alpha: 0.35)
+                  : const Color(0xFFA1A9BB),
               fontSize: 13,
             ),
             prefixIcon: Padding(
@@ -592,35 +700,35 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
               child: Icon(
                 icon,
                 size: 20,
-                color: primary,
+                color: colors.primary,
               ),
             ),
             prefixIconConstraints: const BoxConstraints(
               minWidth: 48,
             ),
             filled: true,
-            fillColor: const Color(0xFFF8F9FD),
+            fillColor: colors.inputFill,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 15,
               vertical: 16,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(13),
-              borderSide: const BorderSide(
-                color: Color(0xFFE3E8F2),
+              borderSide: BorderSide(
+                color: colors.inputBorder,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(13),
-              borderSide: const BorderSide(
-                color: Color(0xFFE3E8F2),
+              borderSide: BorderSide(
+                color: colors.inputBorder,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(13),
-              borderSide: const BorderSide(
-                color: primary,
-                width: 1.5,
+              borderSide: BorderSide(
+                color: colors.accent,
+                width: 1.8,
               ),
             ),
             errorBorder: OutlineInputBorder(
@@ -642,29 +750,35 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
     );
   }
 
-  Widget _buildGenerateButton() {
+  Widget _buildGenerateButton(_AdvisorColors colors) {
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: isLoading
-              ? const LinearGradient(
-            colors: [Color(0xFF8A99D9), Color(0xFF9B8BD5)],
-          )
-              : const LinearGradient(
-            colors: [Color(0xFF4764E8), Color(0xFF815BE2)],
-          ),
+              ? LinearGradient(
+                  colors: [
+                    colors.primary.withValues(alpha: 0.6),
+                    colors.accent.withValues(alpha: 0.6),
+                  ],
+                )
+              : LinearGradient(
+                  colors: [
+                    colors.primary,
+                    colors.accent,
+                  ],
+                ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: isLoading
               ? []
               : [
-            BoxShadow(
-              color: primary.withOpacity(0.23),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
+                  BoxShadow(
+                    color: colors.primary.withValues(alpha: 0.32),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
         ),
         child: ElevatedButton(
           onPressed: isLoading ? null : getCareerAdvice,
@@ -700,6 +814,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],
@@ -710,7 +825,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
   }
 
   // AI result section
-  Widget _buildResults() {
+  Widget _buildResults(_AdvisorColors colors) {
     final careers = result?['careers'] as List<dynamic>? ?? [];
     final strengths = result?['strengths'] as List<dynamic>? ?? [];
     final actions = result?['actionPlan'] as List<dynamic>? ?? [];
@@ -721,18 +836,23 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
         Container(
           padding: const EdgeInsets.all(21),
           decoration: BoxDecoration(
-            color: const Color(0xFFEBF0FF),
+            color: colors.isDark
+                ? const Color(0xFF064E3B).withValues(alpha: 0.35)
+                : const Color(0xFFD1FAE5),
             borderRadius: BorderRadius.circular(19),
-            border: Border.all(color: const Color(0xFFDCE5FF)),
+            border: Border.all(
+              color: colors.cardBorder,
+              width: 1.2,
+            ),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(
                 Icons.auto_awesome,
-                color: primary,
+                color: colors.primary,
                 size: 29,
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -740,16 +860,16 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                     Text(
                       'Your career insights',
                       style: TextStyle(
-                        color: navy,
+                        color: colors.textPrimary,
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: 5),
+                    const SizedBox(height: 5),
                     Text(
                       'Your personalized AI recommendations are ready.',
                       style: TextStyle(
-                        color: muted,
+                        color: colors.textSecondary,
                         fontSize: 12,
                         height: 1.5,
                       ),
@@ -765,6 +885,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
           'Career recommendations',
           'Explore these career paths based on your profile.',
           Icons.work_outline,
+          colors,
         ),
         const SizedBox(height: 14),
         ...careers.asMap().entries.map((entry) {
@@ -779,6 +900,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
             skills: career['skillsToDevelop'] as List<dynamic>? ?? [],
             learning: career['learningAreas'] as List<dynamic>? ?? [],
             technologies: career['technologies'] as List<dynamic>? ?? [],
+            colors: colors,
           );
         }),
         if (strengths.isNotEmpty) ...[
@@ -787,9 +909,11 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
             'Your strengths',
             'What you already bring to your career journey.',
             Icons.workspace_premium_outlined,
+            colors,
           ),
           const SizedBox(height: 14),
-          _listCard(strengths, Icons.check_circle_outline, const Color(0xFF169C77)),
+          _listCard(strengths, Icons.check_circle_outline,
+              const Color(0xFF10B981), colors),
         ],
         if (actions.isNotEmpty) ...[
           const SizedBox(height: 24),
@@ -797,25 +921,32 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
             'Your action plan',
             'Steps to help you move towards your goals.',
             Icons.route_outlined,
+            colors,
           ),
           const SizedBox(height: 14),
-          _actionCard(actions),
+          _actionCard(actions, colors),
         ],
       ],
     );
   }
 
-  Widget _resultHeading(String title, String subtitle, IconData icon) {
+  Widget _resultHeading(
+    String title,
+    String subtitle,
+    IconData icon,
+    _AdvisorColors colors,
+  ) {
     return Row(
       children: [
         Container(
           width: 43,
           height: 43,
           decoration: BoxDecoration(
-            color: const Color(0xFFE8EDFF),
+            color: colors.tagBg,
             borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: colors.cardBorder),
           ),
-          child: Icon(icon, color: primary, size: 22),
+          child: Icon(icon, color: colors.primary, size: 22),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -824,8 +955,8 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: navy,
+                style: TextStyle(
+                  color: colors.textPrimary,
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
                 ),
@@ -833,8 +964,8 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
               const SizedBox(height: 3),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: muted,
+                style: TextStyle(
+                  color: colors.textSecondary,
                   fontSize: 11,
                   height: 1.4,
                 ),
@@ -853,17 +984,20 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
     required List<dynamic> skills,
     required List<dynamic> learning,
     required List<dynamic> technologies,
+    required _AdvisorColors colors,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(19),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBg,
         borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: const Color(0xFFE6EAF3)),
+        border: Border.all(color: colors.cardBorder, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: navy.withOpacity(0.045),
+            color: colors.isDark
+                ? Colors.black26
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -879,8 +1013,8 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 height: 43,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [primary, violet],
+                  gradient: LinearGradient(
+                    colors: [colors.primary, colors.accent],
                   ),
                   borderRadius: BorderRadius.circular(13),
                 ),
@@ -897,8 +1031,8 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    color: navy,
+                  style: TextStyle(
+                    color: colors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                   ),
@@ -907,33 +1041,35 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
             ],
           ),
           const SizedBox(height: 19),
-          _detailTitle('Why this career suits you', Icons.lightbulb_outline),
+          _detailTitle(
+              'Why this career suits you', Icons.lightbulb_outline, colors),
           const SizedBox(height: 7),
           Text(
             why,
-            style: const TextStyle(
-              color: Color(0xFF596579),
+            style: TextStyle(
+              color: colors.textSecondary,
               fontSize: 13,
               height: 1.65,
             ),
           ),
           if (skills.isNotEmpty) ...[
             const SizedBox(height: 18),
-            _detailTitle('Skills to develop', Icons.psychology_outlined),
+            _detailTitle(
+                'Skills to develop', Icons.psychology_outlined, colors),
             const SizedBox(height: 10),
-            _tagList(skills),
+            _tagList(skills, colors),
           ],
           if (learning.isNotEmpty) ...[
             const SizedBox(height: 18),
-            _detailTitle('Learning areas', Icons.menu_book_outlined),
+            _detailTitle('Learning areas', Icons.menu_book_outlined, colors),
             const SizedBox(height: 10),
-            _tagList(learning),
+            _tagList(learning, colors),
           ],
           if (technologies.isNotEmpty) ...[
             const SizedBox(height: 18),
-            _detailTitle('Technologies', Icons.devices_outlined),
+            _detailTitle('Technologies', Icons.devices_outlined, colors),
             const SizedBox(height: 10),
-            _tagList(technologies),
+            _tagList(technologies, colors),
           ],
           const SizedBox(height: 20),
           SizedBox(
@@ -948,17 +1084,18 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                   ),
                 );
               },
-              icon: const Icon(Icons.search_rounded, size: 19),
-              label: const Text(
+              icon: Icon(Icons.search_rounded, size: 19, color: colors.primary),
+              label: Text(
                 'Explore related jobs',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
+                  color: colors.primary,
                 ),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: primary,
-                side: const BorderSide(color: Color(0xFFC9D4FA)),
+                foregroundColor: colors.primary,
+                side: BorderSide(color: colors.accent.withValues(alpha: 0.5)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -970,15 +1107,15 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
     );
   }
 
-  Widget _detailTitle(String title, IconData icon) {
+  Widget _detailTitle(String title, IconData icon, _AdvisorColors colors) {
     return Row(
       children: [
-        Icon(icon, size: 17, color: primary),
+        Icon(icon, size: 17, color: colors.primary),
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
-            color: darkText,
+          style: TextStyle(
+            color: colors.textPrimary,
             fontSize: 13,
             fontWeight: FontWeight.w800,
           ),
@@ -987,7 +1124,7 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
     );
   }
 
-  Widget _tagList(List<dynamic> values) {
+  Widget _tagList(List<dynamic> values, _AdvisorColors colors) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -998,14 +1135,14 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
             vertical: 8,
           ),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F3FF),
-            border: Border.all(color: const Color(0xFFE0E5FF)),
+            color: colors.tagBg,
+            border: Border.all(color: colors.tagBorder),
             borderRadius: BorderRadius.circular(9),
           ),
           child: Text(
             value.toString(),
-            style: const TextStyle(
-              color: Color(0xFF475AC0),
+            style: TextStyle(
+              color: colors.tagText,
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
@@ -1015,14 +1152,19 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
     );
   }
 
-  Widget _listCard(List<dynamic> values, IconData icon, Color color) {
+  Widget _listCard(
+    List<dynamic> values,
+    IconData icon,
+    Color color,
+    _AdvisorColors colors,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBg,
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: const Color(0xFFE6EAF3)),
+        border: Border.all(color: colors.cardBorder, width: 1.2),
       ),
       child: Column(
         children: values.map((value) {
@@ -1036,8 +1178,8 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 Expanded(
                   child: Text(
                     value.toString(),
-                    style: const TextStyle(
-                      color: Color(0xFF596579),
+                    style: TextStyle(
+                      color: colors.textSecondary,
                       fontSize: 13,
                       height: 1.5,
                     ),
@@ -1051,13 +1193,13 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
     );
   }
 
-  Widget _actionCard(List<dynamic> actions) {
+  Widget _actionCard(List<dynamic> actions, _AdvisorColors colors) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBg,
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: const Color(0xFFE6EAF3)),
+        border: Border.all(color: colors.cardBorder, width: 1.2),
       ),
       child: Column(
         children: actions.asMap().entries.map((entry) {
@@ -1073,13 +1215,14 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                   height: 30,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFECEFFF),
+                    color: colors.tagBg,
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: colors.tagBorder),
                   ),
                   child: Text(
                     '${entry.key + 1}',
-                    style: const TextStyle(
-                      color: primary,
+                    style: TextStyle(
+                      color: colors.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
@@ -1091,8 +1234,8 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       entry.value.toString(),
-                      style: const TextStyle(
-                        color: Color(0xFF596579),
+                      style: TextStyle(
+                        color: colors.textSecondary,
                         fontSize: 13,
                         height: 1.55,
                       ),
@@ -1106,6 +1249,44 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
       ),
     );
   }
+}
+
+class _AdvisorColors {
+  final bool isDark;
+  final Color pageBg;
+  final Color cardBg;
+  final Color cardBorder;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color primary;
+  final Color accent;
+  final Color inputFill;
+  final Color inputBorder;
+  final Color tagBg;
+  final Color tagBorder;
+  final Color tagText;
+
+  _AdvisorColors({required this.isDark})
+      : pageBg = isDark ? const Color(0xFF0A140F) : const Color(0xFFF0FDF4),
+        cardBg = isDark ? const Color(0xFF132A1F) : Colors.white,
+        cardBorder = isDark
+            ? const Color(0xFF065F46).withValues(alpha: 0.35)
+            : const Color(0xFFD1FAE5),
+        textPrimary = isDark ? Colors.white : const Color(0xFF0F172A),
+        textSecondary =
+            isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+        primary = const Color(0xFF059669),
+        accent = const Color(0xFF10B981),
+        inputFill =
+            isDark ? const Color(0xFF0A1F16) : const Color(0xFFF7FDF9),
+        inputBorder = isDark
+            ? const Color(0xFF065F46).withValues(alpha: 0.40)
+            : const Color(0xFFD1FAE5),
+        tagBg = isDark ? const Color(0xFF0E2319) : const Color(0xFFECFDF5),
+        tagBorder = isDark
+            ? const Color(0xFF065F46).withValues(alpha: 0.35)
+            : const Color(0xFFA7F3D0),
+        tagText = isDark ? const Color(0xFF34D399) : const Color(0xFF047857);
 }
 
 class _HeroFeature extends StatelessWidget {
@@ -1122,7 +1303,7 @@ class _HeroFeature extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: const Color(0xFFDCE4FF)),
+        Icon(icon, size: 16, color: const Color(0xFFD1FAE5)),
         const SizedBox(width: 5),
         Text(
           label,
