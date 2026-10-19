@@ -12,13 +12,13 @@ class MyApplicationsScreen extends StatefulWidget {
 }
 
 class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
-  static const Color primary = Color(0xFF2563EB);
-  static const Color deepBlue = Color(0xFF173B8F);
-  static const Color indigo = Color(0xFF4F46E5);
-  static const Color background = Color(0xFFF5F7FC);
-  static const Color dark = Color(0xFF17233C);
-  static const Color muted = Color(0xFF64748B);
-  static const Color border = Color(0xFFE7ECF4);
+  static const Color primary = Color(0xFF059669);
+  static const Color deepGreen = Color(0xFF065F46);
+  static const Color lightGreen = Color(0xFF10B981);
+  static const Color background = Color(0xFFF0FDF4);
+  static const Color dark = Color(0xFF0F241B);
+  static const Color muted = Color(0xFF4B6354);
+  static const Color border = Color(0xFFD1FAE5);
 
   final TextEditingController _searchController =
   TextEditingController();
@@ -255,7 +255,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                           total,
                           Icons.description_outlined,
                           primary,
-                          const Color(0xFFEEF4FF),
+                          const Color(0xFFECFDF5),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -265,7 +265,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                           inProgress,
                           Icons.timelapse_rounded,
                           const Color(0xFFD97706),
-                          const Color(0xFFFFF7ED),
+                          const Color(0xFFFFFBEB),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -315,12 +315,12 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [deepBlue, primary, indigo],
+          colors: [deepGreen, primary, lightGreen],
         ),
         borderRadius: BorderRadius.circular(27),
         boxShadow: [
           BoxShadow(
-            color: primary.withOpacity(0.18),
+            color: primary.withValues(alpha: 0.22),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -338,7 +338,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 width: 190,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.07),
+                  color: Colors.white.withValues(alpha: 0.08),
                 ),
               ),
             ),
@@ -350,7 +350,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 width: 145,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.06),
                 ),
               ),
             ),
@@ -362,8 +362,11 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.16),
+                      color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                      ),
                     ),
                     child: const Icon(
                       Icons.work_history_rounded,
@@ -385,7 +388,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                   const Text(
                     'Stay organized and track every opportunity in one place.',
                     style: TextStyle(
-                      color: Color(0xFFE1EAFF),
+                      color: Color(0xFFD1FAE5),
                       fontSize: 12.5,
                       height: 1.55,
                     ),
@@ -397,8 +400,11 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                       vertical: 9,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                      ),
                     ),
                     child: Text(
                       '$total Applications',
@@ -540,7 +546,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
-        separatorBuilder: (_, __) =>
+        separatorBuilder: (_, _) =>
         const SizedBox(width: 9),
         itemBuilder: (context, index) {
           final filter = _filters[index];
@@ -606,7 +612,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
-            color: dark.withOpacity(0.025),
+            color: dark.withValues(alpha: 0.03),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -627,12 +633,17 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                       height: 55,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                           colors: [
-                            Color(0xFFDBEAFE),
-                            Color(0xFFEDE9FE),
+                            Color(0xFFD1FAE5),
+                            Color(0xFFA7F3D0),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(17),
+                        border: Border.all(
+                          color: const Color(0xFF6EE7B7).withValues(alpha: 0.5),
+                        ),
                       ),
                       child: Center(
                         child: Text(
@@ -802,7 +813,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.09),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(11),
       ),
       child: Row(
@@ -981,7 +992,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             width: 78,
             height: 78,
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF4FF),
+              color: const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(
