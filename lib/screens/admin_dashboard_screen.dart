@@ -375,6 +375,53 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
 
         actions: [
+          // Theme Toggle Button
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: colors.isDark ? 0.2 : 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              tooltip: colors.isDark
+                  ? 'Switch to Light Theme'
+                  : 'Switch to Dark Theme',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                transitionBuilder: (child, animation) {
+                  return RotationTransition(
+                    turns: child.key == const ValueKey('dark_icon_admin')
+                        ? Tween<double>(begin: 0.75, end: 1.0).animate(animation)
+                        : Tween<double>(begin: 0.25, end: 0.0).animate(animation),
+                    child: ScaleTransition(
+                      scale: animation,
+                      child: child,
+                    ),
+                  );
+                },
+                child: colors.isDark
+                    ? const Icon(
+                        Icons.wb_sunny_rounded,
+                        key: ValueKey('dark_icon_admin'),
+                        color: Color(0xFFFDE047),
+                        size: 20,
+                      )
+                    : Icon(
+                        Icons.nightlight_round,
+                        key: const ValueKey('light_icon_admin'),
+                        color: colors.primary,
+                        size: 20,
+                      ),
+              ),
+              onPressed: () {
+                AdminThemeManager.isDarkMode.value =
+                    !AdminThemeManager.isDarkMode.value;
+              },
+            ),
+          ),
+
           // Admin Profile Button
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
