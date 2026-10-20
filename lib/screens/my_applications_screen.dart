@@ -1,7 +1,59 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'admin_profile_screen.dart';
+
+class _ApplicationsColors {
+  final bool isDark;
+  final Color background;
+  final Color cardBg;
+  final Color dark;
+  final Color muted;
+  final Color border;
+  final Color primary;
+  final Color deepGreen;
+  final Color lightGreen;
+
+  const _ApplicationsColors({
+    required this.isDark,
+    required this.background,
+    required this.cardBg,
+    required this.dark,
+    required this.muted,
+    required this.border,
+    required this.primary,
+    required this.deepGreen,
+    required this.lightGreen,
+  });
+
+  factory _ApplicationsColors.of(bool isDark) {
+    if (isDark) {
+      return const _ApplicationsColors(
+        isDark: true,
+        background: Color(0xFF0A140F),
+        cardBg: Color(0xFF13231B),
+        dark: Color(0xFFF1F5F9),
+        muted: Color(0xFF94A3B8),
+        border: Color(0xFF1E3A2B),
+        primary: Color(0xFF10B981),
+        deepGreen: Color(0xFF064E3B),
+        lightGreen: Color(0xFF34D399),
+      );
+    }
+    return const _ApplicationsColors(
+      isDark: false,
+      background: Color(0xFFF0FDF4),
+      cardBg: Colors.white,
+      dark: Color(0xFF0F241B),
+      muted: Color(0xFF4B6354),
+      border: Color(0xFFD1FAE5),
+      primary: Color(0xFF059669),
+      deepGreen: Color(0xFF065F46),
+      lightGreen: Color(0xFF10B981),
+    );
+  }
+}
 
 class MyApplicationsScreen extends StatefulWidget {
   const MyApplicationsScreen({super.key});
@@ -12,13 +64,16 @@ class MyApplicationsScreen extends StatefulWidget {
 }
 
 class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
-  static const Color primary = Color(0xFF059669);
-  static const Color deepGreen = Color(0xFF065F46);
-  static const Color lightGreen = Color(0xFF10B981);
-  static const Color background = Color(0xFFF0FDF4);
-  static const Color dark = Color(0xFF0F241B);
-  static const Color muted = Color(0xFF4B6354);
-  static const Color border = Color(0xFFD1FAE5);
+  _ApplicationsColors _colors = _ApplicationsColors.of(false);
+
+  Color get primary => _colors.primary;
+  Color get deepGreen => _colors.deepGreen;
+  Color get lightGreen => _colors.lightGreen;
+  Color get background => _colors.background;
+  Color get dark => _colors.dark;
+  Color get muted => _colors.muted;
+  Color get border => _colors.border;
+  Color get cardBg => _colors.cardBg;
 
   final TextEditingController _searchController =
   TextEditingController();
@@ -120,191 +175,205 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    return ValueListenableBuilder<bool>(
+      valueListenable: AdminThemeManager.isDarkMode,
+      builder: (context, isDark, _) {
+        _colors = _ApplicationsColors.of(isDark);
+        final user = FirebaseAuth.instance.currentUser;
 
-    return Scaffold(
-      backgroundColor: background,
-      appBar: AppBar(
-        backgroundColor: background,
-        surfaceTintColor: background,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'My Applications',
-          style: TextStyle(
-            color: dark,
-            fontSize: 19,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-      body: user == null
-          ? _messageState(
-        Icons.lock_outline_rounded,
-        'Sign in required',
-        'Please log in to view your job applications.',
-      )
-          : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('applications')
-            .where('userId', isEqualTo: user.uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.waiting &&
-              !snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: primary,
-              ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return _messageState(
-              Icons.cloud_off_outlined,
-              'Unable to load applications',
-              'Please check your connection and try again.',
-            );
-          }
-
-          final docs = [
-            ...?snapshot.data?.docs,
-          ];
-
-          docs.sort((a, b) {
-            final aDate = _dateValue(a.data());
-            final bDate = _dateValue(b.data());
-
-            if (aDate == null && bDate == null) return 0;
-            if (aDate == null) return 1;
-            if (bDate == null) return -1;
-
-            return bDate.compareTo(aDate);
-          });
-
-          final total = docs.length;
-
-          final inProgress = docs.where((doc) {
-            final status = _stringValue(
-              doc.data(),
-              'status',
-              'Applied',
-            );
-            return _isInProgress(status);
-          }).length;
-
-          final accepted = docs.where((doc) {
-            return _stringValue(
-              doc.data(),
-              'status',
-              'Applied',
-            ).toLowerCase() ==
-                'accepted';
-          }).length;
-
-          final query =
-          _searchController.text.trim().toLowerCase();
-
-          final filtered = docs.where((doc) {
-            final data = doc.data();
-
-            final title = _stringValue(
-              data,
-              'jobTitle',
-              'Unknown Job',
-            ).toLowerCase();
-
-            final company = _stringValue(
-              data,
-              'company',
-              'Unknown Company',
-            ).toLowerCase();
-
-            final status = _stringValue(
-              data,
-              'status',
-              'Applied',
-            );
-
-            final matchesSearch =
-                title.contains(query) ||
-                    company.contains(query);
-
-            return matchesSearch && _matchesFilter(status);
-          }).toList();
-
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 800,
-              ),
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(
-                  18, 8, 18, 30,
-                ),
-                children: [
-                  _buildHero(total),
-                  const SizedBox(height: 17),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _summaryCard(
-                          'Total',
-                          total,
-                          Icons.description_outlined,
-                          primary,
-                          const Color(0xFFECFDF5),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _summaryCard(
-                          'In Progress',
-                          inProgress,
-                          Icons.timelapse_rounded,
-                          const Color(0xFFD97706),
-                          const Color(0xFFFFFBEB),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _summaryCard(
-                          'Accepted',
-                          accepted,
-                          Icons.check_circle_outline_rounded,
-                          const Color(0xFF059669),
-                          const Color(0xFFECFDF5),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 25),
-                  _sectionHeading(
-                    'Your applications',
-                    '$total submitted applications',
-                  ),
-                  const SizedBox(height: 15),
-                  _buildSearch(),
-                  const SizedBox(height: 14),
-                  _buildFilters(),
-                  const SizedBox(height: 19),
-                  if (filtered.isEmpty)
-                    _emptyResults(total == 0)
-                  else
-                    ...filtered.map(
-                          (doc) => _applicationCard(
-                        doc.id,
-                        doc.data(),
-                      ),
-                    ),
-                ],
+        return Scaffold(
+          backgroundColor: background,
+          appBar: AppBar(
+            backgroundColor: background,
+            surfaceTintColor: background,
+            elevation: 0,
+            centerTitle: true,
+            leading: IconButton(
+              onPressed: () => Navigator.maybePop(context),
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: dark,
+                size: 19,
               ),
             ),
-          );
-        },
-      ),
+            title: Text(
+              'My Applications',
+              style: TextStyle(
+                color: dark,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          body: user == null
+              ? _messageState(
+            Icons.lock_outline_rounded,
+            'Sign in required',
+            'Please log in to view your job applications.',
+          )
+              : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('applications')
+                .where('userId', isEqualTo: user.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState ==
+                  ConnectionState.waiting &&
+                  !snapshot.hasData) {
+                return Center(
+                  child: CircularProgressIndicator(
+                    color: primary,
+                  ),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return _messageState(
+                  Icons.cloud_off_outlined,
+                  'Unable to load applications',
+                  'Please check your connection and try again.',
+                );
+              }
+
+              final docs = [
+                ...?snapshot.data?.docs,
+              ];
+
+              docs.sort((a, b) {
+                final aDate = _dateValue(a.data());
+                final bDate = _dateValue(b.data());
+
+                if (aDate == null && bDate == null) return 0;
+                if (aDate == null) return 1;
+                if (bDate == null) return -1;
+
+                return bDate.compareTo(aDate);
+              });
+
+              final total = docs.length;
+
+              final inProgress = docs.where((doc) {
+                final status = _stringValue(
+                  doc.data(),
+                  'status',
+                  'Applied',
+                );
+                return _isInProgress(status);
+              }).length;
+
+              final accepted = docs.where((doc) {
+                return _stringValue(
+                  doc.data(),
+                  'status',
+                  'Applied',
+                ).toLowerCase() ==
+                    'accepted';
+              }).length;
+
+              final query =
+              _searchController.text.trim().toLowerCase();
+
+              final filtered = docs.where((doc) {
+                final data = doc.data();
+
+                final title = _stringValue(
+                  data,
+                  'jobTitle',
+                  'Unknown Job',
+                ).toLowerCase();
+
+                final company = _stringValue(
+                  data,
+                  'company',
+                  'Unknown Company',
+                ).toLowerCase();
+
+                final status = _stringValue(
+                  data,
+                  'status',
+                  'Applied',
+                );
+
+                final matchesSearch =
+                    title.contains(query) ||
+                        company.contains(query);
+
+                return matchesSearch && _matchesFilter(status);
+              }).toList();
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 800,
+                  ),
+                  child: ListView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(
+                      18, 8, 18, 30,
+                    ),
+                    children: [
+                      _buildHero(total),
+                      const SizedBox(height: 17),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _summaryCard(
+                              'Total',
+                              total,
+                              Icons.description_outlined,
+                              primary,
+                              const Color(0xFFECFDF5),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _summaryCard(
+                              'In Progress',
+                              inProgress,
+                              Icons.timelapse_rounded,
+                              const Color(0xFFD97706),
+                              const Color(0xFFFFFBEB),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _summaryCard(
+                              'Accepted',
+                              accepted,
+                              Icons.check_circle_outline_rounded,
+                              const Color(0xFF059669),
+                              const Color(0xFFECFDF5),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 25),
+                      _sectionHeading(
+                        'Your applications',
+                        '$total submitted applications',
+                      ),
+                      const SizedBox(height: 15),
+                      _buildSearch(),
+                      const SizedBox(height: 14),
+                      _buildFilters(),
+                      const SizedBox(height: 19),
+                      if (filtered.isEmpty)
+                        _emptyResults(total == 0)
+                      else
+                        ...filtered.map(
+                              (doc) => _applicationCard(
+                            doc.id,
+                            doc.data(),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -312,7 +381,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [deepGreen, primary, lightGreen],
@@ -437,7 +506,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         vertical: 15,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: border),
       ),
@@ -448,7 +517,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             width: 37,
             height: 37,
             decoration: BoxDecoration(
-              color: iconBg,
+              color: _colors.isDark ? color.withValues(alpha: 0.18) : iconBg,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 19),
@@ -456,7 +525,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           const SizedBox(height: 12),
           Text(
             '$count',
-            style: const TextStyle(
+            style: TextStyle(
               color: dark,
               fontSize: 23,
               fontWeight: FontWeight.w900,
@@ -467,7 +536,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: muted,
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
@@ -484,7 +553,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             color: dark,
             fontSize: 19,
             fontWeight: FontWeight.w800,
@@ -493,7 +562,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         const SizedBox(height: 5),
         Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             color: muted,
             fontSize: 12,
           ),
@@ -505,20 +574,24 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   Widget _buildSearch() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(17),
         border: Border.all(color: border),
       ),
       child: TextField(
         controller: _searchController,
+        style: TextStyle(
+          color: dark,
+          fontSize: 13.5,
+        ),
         onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
           hintText: 'Search jobs or companies...',
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             color: muted,
             fontSize: 13,
           ),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search_rounded,
             color: primary,
           ),
@@ -528,7 +601,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               _searchController.clear();
               setState(() {});
             },
-            icon: const Icon(Icons.close_rounded),
+            icon: Icon(Icons.close_rounded, color: muted),
           )
               : null,
           border: InputBorder.none,
@@ -559,7 +632,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               setState(() => _selectedFilter = filter);
             },
             showCheckmark: false,
-            backgroundColor: Colors.white,
+            backgroundColor: cardBg,
             selectedColor: primary,
             side: BorderSide(
               color: selected ? primary : border,
@@ -607,12 +680,12 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
-            color: dark.withValues(alpha: 0.03),
+            color: dark.withValues(alpha: _colors.isDark ? 0.2 : 0.03),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -632,17 +705,24 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                       width: 55,
                       height: 55,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [
+                          colors: _colors.isDark
+                              ? const [
+                            Color(0xFF064E3B),
+                            Color(0xFF065F46),
+                          ]
+                              : const [
                             Color(0xFFD1FAE5),
                             Color(0xFFA7F3D0),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(17),
                         border: Border.all(
-                          color: const Color(0xFF6EE7B7).withValues(alpha: 0.5),
+                          color: _colors.isDark
+                              ? const Color(0xFF059669).withValues(alpha: 0.4)
+                              : const Color(0xFF6EE7B7).withValues(alpha: 0.5),
                         ),
                       ),
                       child: Center(
@@ -650,8 +730,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                           company.isEmpty
                               ? 'C'
                               : company[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: primary,
+                          style: TextStyle(
+                            color: _colors.isDark ? const Color(0xFF6EE7B7) : primary,
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
                           ),
@@ -666,7 +746,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                         children: [
                           Text(
                             jobTitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: dark,
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
@@ -676,7 +756,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                           const SizedBox(height: 6),
                           Text(
                             company,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: muted,
                               fontSize: 12.5,
                               fontWeight: FontWeight.w500,
@@ -706,7 +786,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_today_outlined,
                             color: muted,
                             size: 14,
@@ -714,7 +794,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                           const SizedBox(width: 7),
                           Text(
                             _formatDate(date),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: muted,
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
@@ -728,7 +808,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               ],
             ),
           ),
-          const Divider(height: 1, color: border),
+          Divider(height: 1, color: border),
           InkWell(
             onTap: () {
               setState(() {
@@ -755,7 +835,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                     size: 19,
                   ),
                   const SizedBox(width: 9),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Application progress',
                       style: TextStyle(
@@ -767,7 +847,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                   ),
                   Text(
                     expanded ? 'Hide' : 'View',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: primary,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -843,21 +923,21 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       return Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: const Color(0xFFFEF2F2),
+          color: _colors.isDark ? const Color(0x33DC2626) : const Color(0xFFFEF2F2),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.cancel_outlined,
               color: Color(0xFFDC2626),
             ),
-            SizedBox(width: 11),
+            const SizedBox(width: 11),
             Expanded(
               child: Text(
                 'This application was not selected.',
                 style: TextStyle(
-                  color: Color(0xFF991B1B),
+                  color: _colors.isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -883,7 +963,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     if (current < 0) {
       return Text(
         'Current status: $status',
-        style: const TextStyle(
+        style: TextStyle(
           color: muted,
           fontSize: 12,
         ),
@@ -912,7 +992,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                           : Icons.radio_button_unchecked_rounded,
                       color: reached
                           ? const Color(0xFF059669)
-                          : const Color(0xFFCBD5E1),
+                          : (_colors.isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                       size: 21,
                     ),
                     if (!last)
@@ -945,7 +1025,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                         ),
                       ),
                       if (isCurrent)
-                        const Text(
+                        Text(
                           'CURRENT',
                           style: TextStyle(
                             color: primary,
@@ -962,7 +1042,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           );
         }),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Progress is based on the current status provided by the administrator.',
           style: TextStyle(
             color: muted,
@@ -982,7 +1062,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         vertical: 45,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(23),
         border: Border.all(color: border),
       ),
@@ -992,7 +1072,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             width: 78,
             height: 78,
             decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
+              color: _colors.isDark ? const Color(0x3310B981) : const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(
@@ -1009,7 +1089,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 ? 'No applications yet'
                 : 'No matching applications',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: dark,
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1021,7 +1101,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 ? 'Your job applications will appear here once you apply.'
                 : 'Try a different search or filter to find your applications.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: muted,
               fontSize: 12.5,
               height: 1.5,
@@ -1075,7 +1155,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: dark,
                 fontSize: 19,
                 fontWeight: FontWeight.w800,
@@ -1085,7 +1165,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: muted,
                 fontSize: 13,
               ),

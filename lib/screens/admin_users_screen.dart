@@ -307,49 +307,6 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           ],
                         ),
                       ),
-
-                      const SizedBox(width: 10),
-
-                      // Theme Toggle
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.16),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.22),
-                          ),
-                        ),
-                        child: IconButton(
-                          tooltip: colors.isDark
-                              ? 'Switch to Light Theme'
-                              : 'Switch to Dark Theme',
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 40,
-                            minHeight: 40,
-                          ),
-                          icon: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 280),
-                            child: colors.isDark
-                                ? const Icon(
-                                    Icons.wb_sunny_rounded,
-                                    key: ValueKey('dark_u'),
-                                    color: Color(0xFFFDE047),
-                                    size: 20,
-                                  )
-                                : const Icon(
-                                    Icons.nightlight_round,
-                                    key: ValueKey('light_u'),
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                          ),
-                          onPressed: () {
-                            AdminThemeManager.isDarkMode.value =
-                                !AdminThemeManager.isDarkMode.value;
-                          },
-                        ),
-                      ),
                     ],
                   ),
 

@@ -429,65 +429,6 @@ class _CareerHistoryScreenState extends State<CareerHistoryScreen> {
     );
   }
 
-  Widget _buildThemeToggle(
-    bool isDark,
-    CareerHistoryColors colors,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: Center(
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: colors.cardBg,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: colors.cardBorder,
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black38
-                    : colors.primary.withValues(alpha: 0.12),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, anim) => RotationTransition(
-                turns: anim,
-                child: FadeTransition(opacity: anim, child: child),
-              ),
-              child: isDark
-                  ? const Icon(
-                      Icons.wb_sunny_rounded,
-                      key: ValueKey('dark_sun'),
-                      color: Color(0xFFFDE047),
-                      size: 20,
-                    )
-                  : Icon(
-                      Icons.nightlight_round,
-                      key: const ValueKey('light_moon'),
-                      color: colors.primary,
-                      size: 20,
-                    ),
-            ),
-            onPressed: () {
-              AdminThemeManager.toggleTheme();
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -515,12 +456,8 @@ class _CareerHistoryScreenState extends State<CareerHistoryScreen> {
                 color: colors.textPrimary,
                 fontSize: 19,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
               ),
             ),
-            actions: [
-              _buildThemeToggle(isDark, colors),
-            ],
           ),
           body: user == null
               ? _empty(
@@ -1255,62 +1192,6 @@ class CareerHistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeToggle(bool isDark, CareerHistoryColors colors) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: Center(
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: colors.cardBg,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: colors.cardBorder,
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black38
-                    : colors.primary.withValues(alpha: 0.12),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, anim) => RotationTransition(
-                turns: anim,
-                child: FadeTransition(opacity: anim, child: child),
-              ),
-              child: isDark
-                  ? const Icon(
-                      Icons.wb_sunny_rounded,
-                      key: ValueKey('dark_sun'),
-                      color: Color(0xFFFDE047),
-                      size: 20,
-                    )
-                  : Icon(
-                      Icons.nightlight_round,
-                      key: const ValueKey('light_moon'),
-                      color: colors.primary,
-                      size: 20,
-                    ),
-            ),
-            onPressed: () {
-              AdminThemeManager.toggleTheme();
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final result = CareerStyle.parse(recommendation);
@@ -1334,12 +1215,8 @@ class CareerHistoryDetailScreen extends StatelessWidget {
                 color: colors.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
               ),
             ),
-            actions: [
-              _buildThemeToggle(isDark, colors),
-            ],
           ),
           body: Center(
             child: ConstrainedBox(

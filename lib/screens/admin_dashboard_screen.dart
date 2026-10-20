@@ -375,40 +375,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
 
         actions: [
-          // Theme Toggle Button
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-            decoration: BoxDecoration(
-              color: colors.isDark
-                  ? const Color(0x3310B981)
-                  : const Color(0x18059669),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              tooltip: colors.isDark
-                  ? 'Switch to Light Theme'
-                  : 'Switch to Dark Theme',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
-                transitionBuilder: (child, anim) => RotationTransition(
-                  turns: anim,
-                  child: FadeTransition(opacity: anim, child: child),
-                ),
-                child: Icon(
-                  colors.isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
-                  key: ValueKey<bool>(colors.isDark),
-                  color: colors.isDark ? const Color(0xFFFBBF24) : colors.primary,
-                  size: 20,
-                ),
-              ),
-              onPressed: () {
-                AdminThemeManager.toggleTheme();
-              },
-            ),
-          ),
-
           // Admin Profile Button
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),

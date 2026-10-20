@@ -154,61 +154,6 @@ class _CareerAdvisorScreenState extends State<CareerAdvisorScreen> {
                 letterSpacing: -0.4,
               ),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: colors.cardBg,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: colors.cardBorder,
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isDark
-                            ? Colors.black38
-                            : colors.primary.withValues(alpha: 0.12),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    tooltip: isDark
-                        ? 'Switch to Light Mode'
-                        : 'Switch to Dark Mode',
-                    icon: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      transitionBuilder: (child, anim) => RotationTransition(
-                        turns: anim,
-                        child: FadeTransition(opacity: anim, child: child),
-                      ),
-                      child: isDark
-                          ? const Icon(
-                              Icons.wb_sunny_rounded,
-                              key: ValueKey('dark_sun'),
-                              color: Color(0xFFFDE047),
-                              size: 20,
-                            )
-                          : Icon(
-                              Icons.nightlight_round,
-                              key: const ValueKey('light_moon'),
-                              color: colors.primary,
-                              size: 20,
-                            ),
-                    ),
-                    onPressed: () {
-                      AdminThemeManager.toggleTheme();
-                    },
-                  ),
-                ),
-              ),
-            ],
           ),
           body: SafeArea(
             child: LayoutBuilder(

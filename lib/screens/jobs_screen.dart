@@ -327,53 +327,6 @@ class _JobsScreenState extends State<JobsScreen> {
             ),
           ),
 
-          // Theme Toggle Button (Sun / Moon)
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colors.cardBg,
-              shape: BoxShape.circle,
-              border: Border.all(color: colors.cardBorder, width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: (colors.isDark ? Colors.black : const Color(0xFF059669))
-                      .withValues(alpha: colors.isDark ? 0.3 : 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              tooltip: colors.isDark
-                  ? 'Switch to Light Theme'
-                  : 'Switch to Dark Theme',
-              padding: EdgeInsets.zero,
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
-                child: colors.isDark
-                    ? const Icon(
-                        Icons.wb_sunny_rounded,
-                        key: ValueKey('dark_icon'),
-                        color: Color(0xFFFDE047),
-                        size: 20,
-                      )
-                    : Icon(
-                        Icons.nightlight_round,
-                        key: const ValueKey('light_icon'),
-                        color: colors.primary,
-                        size: 20,
-                      ),
-              ),
-              onPressed: () {
-                AdminThemeManager.isDarkMode.value =
-                    !AdminThemeManager.isDarkMode.value;
-              },
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
           // Briefcase Icon Box
           Container(
             width: 40,

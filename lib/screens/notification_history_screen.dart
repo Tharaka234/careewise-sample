@@ -529,16 +529,6 @@ class _NotificationHistoryScreenState
                         },
                       ),
                       const Spacer(),
-                      // THEME TOGGLE BUTTON
-                      _glassHeaderButton(
-                        icon: colors.isDark
-                            ? Icons.wb_sunny_rounded
-                            : Icons.nightlight_round,
-                        onTap: () {
-                          AdminThemeManager.toggleTheme();
-                        },
-                      ),
-                      const SizedBox(width: 10),
                       _glassHeaderButton(
                         icon: Icons.settings_outlined,
                         onTap: () {
