@@ -55,6 +55,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final GlobalKey _jobsSectionKey = GlobalKey();
   final GlobalKey _applicationsSectionKey = GlobalKey();
 
+  bool _showAllJobs = false;
+  bool _showAllApplications = false;
+
+
   void _scrollToSection(GlobalKey key) {
     final targetContext = key.currentContext;
     if (targetContext != null) {
@@ -474,28 +478,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
 
-          // Logout Button
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-            decoration: BoxDecoration(
-              color: Colors.redAccent.withValues(alpha: colors.isDark ? 0.2 : 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              tooltip: 'Logout',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              icon: const Icon(
-                Icons.logout_rounded,
-                color: Colors.redAccent,
-                size: 19,
-              ),
-              onPressed: () async {
-                await NotificationService.instance.onBeforeLogout();
-                await FirebaseAuth.instance.signOut();
-              },
-            ),
-          ),
 
           const SizedBox(width: 8),
         ],
@@ -1196,10 +1178,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('jobs')
-          .orderBy(
-            'createdAt',
-            descending: true,
-          )
+          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -1224,17 +1203,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           );
         }
 
-        return Column(
-          children: jobs.map((document) {
-            final data = document.data() as Map<String, dynamic>;
+        final visibleJobs = _showAllJobs
+            ? jobs
+            : jobs.take(4).toList();
 
-            return _jobCard(
-              context,
-              document.id,
-              data,
-              colors,
-            );
-          }).toList(),
+        return Column(
+          children: [
+            ...visibleJobs.map((document) {
+              final data = document.data() as Map<String, dynamic>;
+
+              return _jobCard(
+                context,
+                document.id,
+                data,
+                colors,
+              );
+            }),
+
+            if (jobs.length > 4)
+              _viewAllButton(
+                colors: colors,
+                showAll: _showAllJobs,
+                totalCount: jobs.length,
+                label: 'Jobs',
+                onPressed: () {
+                  setState(() {
+                    _showAllJobs = !_showAllJobs;
+                  });
+                },
+              ),
+          ],
         );
       },
     );
@@ -1857,28 +1855,62 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           return _emptyCard(
             icon: Icons.description_outlined,
             title: 'No applications yet',
-            subtitle:
-                'Applications will appear here when users apply for jobs.',
+            subtitle: 'Applications will appear here when users apply for jobs.',
             colors: colors,
           );
         }
 
-        return Column(
-          children: applications.map((document) {
-            final data = document.data() as Map<String, dynamic>;
+        // Most recent applications first.
+        final sortedApplications = [...applications];
 
-            return _applicationCard(
-              context,
-              document.id,
-              data,
-              colors,
-            );
-          }).toList(),
+        sortedApplications.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+
+          final aDate = aData['appliedAt'] as Timestamp?;
+          final bDate = bData['appliedAt'] as Timestamp?;
+
+          if (aDate == null && bDate == null) return 0;
+          if (aDate == null) return 1;
+          if (bDate == null) return -1;
+
+          return bDate.compareTo(aDate);
+        });
+
+        final visibleApplications = _showAllApplications
+            ? sortedApplications
+            : sortedApplications.take(4).toList();
+
+        return Column(
+          children: [
+            ...visibleApplications.map((document) {
+              final data = document.data() as Map<String, dynamic>;
+
+              return _applicationCard(
+                context,
+                document.id,
+                data,
+                colors,
+              );
+            }),
+
+            if (sortedApplications.length > 4)
+              _viewAllButton(
+                colors: colors,
+                showAll: _showAllApplications,
+                totalCount: sortedApplications.length,
+                label: 'Applications',
+                onPressed: () {
+                  setState(() {
+                    _showAllApplications = !_showAllApplications;
+                  });
+                },
+              ),
+          ],
         );
       },
     );
   }
-
   // =====================================================
   // APPLICATION CARD (REDESIGNED CANDIDATE PIPELINE VIEW)
   // =====================================================
@@ -2718,6 +2750,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _viewAllButton({
+    required _AdminColors colors,
+    required bool showAll,
+    required int totalCount,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 12),
+      child: SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: OutlinedButton.icon(
+          onPressed: onPressed,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: colors.primary,
+            backgroundColor: colors.cardBg,
+            side: BorderSide(
+              color: colors.primary.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          icon: Icon(
+            showAll
+                ? Icons.keyboard_arrow_up_rounded
+                : Icons.grid_view_rounded,
+            size: 20,
+          ),
+          label: Text(
+            showAll
+                ? 'Show Less'
+                : 'View All $totalCount $label',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13.5,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

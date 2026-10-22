@@ -476,66 +476,6 @@ class AdminProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 20),
 
-                    // ==========================================
-                    // 8. QUICK MANAGEMENT SHORTCUTS
-                    // ==========================================
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: cardBg,
-                              foregroundColor: primaryColor,
-                              side: BorderSide(color: borderColor),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AdminBroadcastScreen(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.campaign_rounded, size: 20),
-                            label: const Text(
-                              'Broadcast',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: cardBg,
-                              foregroundColor: secondaryColor,
-                              side: BorderSide(color: borderColor),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AddJobScreen(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
-                            label: const Text(
-                              'Add Job',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
 
                     const SizedBox(height: 25),
 

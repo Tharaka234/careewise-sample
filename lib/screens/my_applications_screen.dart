@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'ai_mock_interview_screen.dart';
 
 import 'admin_profile_screen.dart';
 
@@ -877,6 +878,36 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             )
                 : const SizedBox(
               width: double.infinity,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AIMockInterviewScreen(
+                        applicationId: id,
+                        jobTitle: jobTitle,
+                        company: company,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.psychology_outlined),
+                label: const Text('Prepare for Interview'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

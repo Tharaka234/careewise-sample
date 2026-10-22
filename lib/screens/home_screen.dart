@@ -14,8 +14,8 @@ import 'career_advisor_screen.dart';
 import 'career_history_screen.dart';
 import 'my_applications_screen.dart';
 import 'profile_screen.dart';
-import 'notification_settings_screen.dart';
 import 'notification_history_screen.dart';
+import 'interview_history_screen.dart';
 
 // ================================================================
 // DYNAMIC THEME COLOR PALETTE (PREMIUM GREEN THEME)
@@ -95,14 +95,26 @@ class HomeScreen extends StatelessWidget {
                       _buildSectionTitle(
                         'Quick Actions',
                         colors,
-                        trailing: 'Your career journey, in one place',
+
                       ),
                       const SizedBox(height: 14),
+
+// Quick Actions
                       _buildQuickActions(context, colors),
+
+                      const SizedBox(height: 12),
+
+// Interview History - Full Width Card
+                      _buildInterviewHistoryCard(context, colors),
+
                       const SizedBox(height: 28),
+
+// Featured Jobs
                       _buildFeaturedHeader(context, colors),
+
                       const SizedBox(height: 14),
                       _buildFeaturedJobs(colors),
+
                       const SizedBox(height: 22),
                       _buildCtaBanner(context, colors),
                     ],
@@ -589,15 +601,7 @@ class HomeScreen extends StatelessWidget {
         page: const MyApplicationsScreen(),
         colors: colors,
       ),
-      _quickAction(
-        context,
-        icon: Icons.tune_rounded,
-        title: 'Notification Settings',
-        subtitle: 'Manage your alerts and reminders',
-        color: colors.isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
-        page: const NotificationSettingsScreen(),
-        colors: colors,
-      ),
+
     ];
 
     return LayoutBuilder(
@@ -626,6 +630,110 @@ class HomeScreen extends StatelessWidget {
 
         return Column(children: rows);
       },
+    );
+  }
+
+  // ================================================================
+// INTERVIEW HISTORY CARD - DARK / LIGHT THEME
+// ================================================================
+
+  Widget _buildInterviewHistoryCard(
+      BuildContext context,
+      _HomeColors colors,
+      ) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colors.cardBorder,
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.isDark
+                ? Colors.black.withValues(alpha: 0.20)
+                : const Color(0xFF059669).withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          mouseCursor: SystemMouseCursors.click,
+          onTap: () => _open(
+            context,
+            const InterviewHistoryScreen(),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: colors.primary.withValues(alpha: 0.20),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.history_rounded,
+                    color: colors.primary,
+                    size: 27,
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Interview History',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+
+                      const SizedBox(height: 5),
+
+                      Text(
+                        'Review your AI interview results',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: colors.primary,
+                  size: 24,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

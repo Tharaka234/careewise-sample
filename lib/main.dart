@@ -16,7 +16,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
 // await FirebaseAppCheck.instance.activate(
 //   providerWeb: WebDebugProvider(
 //     debugToken: 'a97a2c69-82c0-4c5f-8801-e9ffdbcff5d2',
