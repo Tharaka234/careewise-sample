@@ -83,8 +83,31 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final user = credential.user;
+
       if (user == null) {
         throw Exception('Login failed');
+      }
+
+// Check whether the logged-in user is an admin.
+      final isAdmin = await checkAdmin(user.uid);
+
+      if (!mounted) return;
+
+// Navigate according to the user's role.
+      if (isAdmin) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AdminDashboardScreen(),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const HomeScreen(),
+          ),
+        );
       }
 
 

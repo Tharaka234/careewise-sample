@@ -643,14 +643,14 @@ Score must be an integer from 0 to 100.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: background,
+
+      appBar: AppBar(
+        title: const Text('AI Interview Coach'),
         backgroundColor: background,
 
-        appBar: AppBar(
-          title: const Text('AI Interview Coach'),
-          backgroundColor: background,
 
-
-        ),
+      ),
 
 
 

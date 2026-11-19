@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:careerwise_sample/model/job.dart';
 import 'admin_profile_screen.dart';
+import 'package:careerwise_sample/services/notification_service.dart';
 
 class _JobDetailsColors {
   final bool isDark;
@@ -106,13 +107,17 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           .collection('applications')
           .where('userId', isEqualTo: user.uid)
           .where('jobId', isEqualTo: widget.job.id)
-          .limit(1)
           .get();
 
       if (!mounted) return;
 
+      // A cancelled application no longer counts, so the user may apply again.
+      final hasActiveApplication = result.docs.any(
+            (doc) => doc.data()['status'] != 'Cancelled',
+      );
+
       setState(() {
-        hasApplied = result.docs.isNotEmpty;
+        hasApplied = hasActiveApplication;
         isChecking = false;
         statusError = null;
       });
@@ -279,6 +284,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
   }
 
+
+
   Future<void> _applyForJob() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -291,12 +298,15 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           .collection('applications')
           .where('userId', isEqualTo: user.uid)
           .where('jobId', isEqualTo: widget.job.id)
-          .limit(1)
           .get();
 
       if (!mounted) return;
 
-      if (existing.docs.isNotEmpty) {
+      final alreadyApplied = existing.docs.any(
+            (doc) => doc.data()['status'] != 'Cancelled',
+      );
+
+      if (alreadyApplied) {
         setState(() {
           hasApplied = true;
           isApplying = false;
@@ -306,7 +316,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         return;
       }
 
-      await FirebaseFirestore.instance
+      // Save the application to Firestore.
+      final applicationRef = await FirebaseFirestore.instance
           .collection('applications')
           .add({
         'userId': user.uid,
@@ -315,6 +326,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         'company': widget.job.company,
         'status': 'Applied',
         'appliedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Send notification through the Node.js backend.
+      NotificationService.instance
+          .notifyApplicationSubmitted(
+        applicationId: applicationRef.id,
+        jobId: widget.job.id,
+        jobTitle: widget.job.title,
+        company: widget.job.company,
+      )
+          .catchError((error) {
+        debugPrint('Application notification error: $error');
       });
 
       if (!mounted) return;
@@ -338,6 +361,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       );
     }
   }
+
 
   void _showSnackBar(String message, {bool error = false}) {
     if (!mounted) return;
@@ -1028,18 +1052,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: hasApplied
                       ? (_colors.isDark
-                          ? const Color(0x3310B981)
-                          : const Color(0xFFDCFCE7))
+                      ? const Color(0x3310B981)
+                      : const Color(0xFFDCFCE7))
                       : (_colors.isDark
-                          ? const Color(0xFF1E293B)
-                          : const Color(0xFFE2E8F0)),
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFE2E8F0)),
                   disabledForegroundColor: hasApplied
                       ? (_colors.isDark
-                          ? const Color(0xFF34D399)
-                          : const Color(0xFF047857))
+                      ? const Color(0xFF34D399)
+                      : const Color(0xFF047857))
                       : (_colors.isDark
-                          ? const Color(0xFF64748B)
-                          : const Color(0xFF64748B)),
+                      ? const Color(0xFF64748B)
+                      : const Color(0xFF64748B)),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(17),

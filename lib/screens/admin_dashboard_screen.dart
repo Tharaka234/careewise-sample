@@ -4,11 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'add_job_screen.dart';
-import 'package:careerwise_sample/services/notification_service.dart';
+
 import 'admin_broadcast_screen.dart';
 import 'admin_profile_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_recommendations_screen.dart';
+import 'notification_history_screen.dart';
+import '../widgets/cancel_request_banner.dart';
 
 // =====================================================
 // DYNAMIC THEME COLOR PALETTE (PREMIUM GREEN THEME)
@@ -69,6 +71,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         alignment: 0.05,
       );
     }
+
+
+
   }
 
   // =====================================================
@@ -104,6 +109,106 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } catch (_) {}
     return null;
   }
+  Future<void> _confirmRemoveCancelledApplication(
+      BuildContext context,
+      String applicationId,
+      String jobTitle,
+      _AdminColors colors,
+      ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: colors.cardBg,
+        title: Text(
+          'Remove Cancelled Application?',
+          style: TextStyle(color: colors.textPrimary),
+        ),
+        content: Text(
+          'Remove the cancelled application for "$jobTitle" '
+              'from the Admin Dashboard?\n\n'
+              'The cancellation record will be preserved.',
+          style: TextStyle(color: colors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) throw StateError('Not signed in');
+
+      final adminDoc = await FirebaseFirestore.instance
+          .collection('admins')
+          .doc(uid)
+          .get();
+
+      if (!adminDoc.exists || adminDoc.data()?['role'] != 'admin') {
+        throw StateError('Administrator access required');
+      }
+
+      final ref = FirebaseFirestore.instance
+          .collection('applications')
+          .doc(applicationId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(ref);
+
+        if (!snapshot.exists) {
+          throw StateError('Application no longer exists');
+        }
+
+        final data = snapshot.data()!;
+        final status = (data['status'] ?? '').toString().toLowerCase();
+
+        if (status != 'cancelled') {
+          throw StateError('Only cancelled applications can be removed');
+        }
+
+        if (data['adminArchived'] == true) return;
+
+        transaction.update(ref, {
+          'adminArchived': true,
+          'adminArchivedAt': FieldValue.serverTimestamp(),
+          'adminArchivedBy': uid,
+        });
+      });
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cancelled application removed from Admin Dashboard'),
+          backgroundColor: Color(0xFF059669),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to remove application: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +269,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             }
 
             final data =
-                snapshot.data!.data() as Map<String, dynamic>?;
+            snapshot.data!.data() as Map<String, dynamic>?;
 
             if (data?['role'] != 'admin') {
               return _accessDeniedScreen(
@@ -174,9 +279,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             }
 
             final adminName =
-                data?['name']?.toString().trim().isNotEmpty == true
-                    ? data!['name'].toString()
-                    : 'Admin';
+            data?['name']?.toString().trim().isNotEmpty == true
+                ? data!['name'].toString()
+                : 'Admin';
 
             return _buildDashboard(context, adminName, colors);
           },
@@ -258,9 +363,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   void _showAdminProfile(
-    BuildContext context,
-    String adminName,
-  ) {
+      BuildContext context,
+      String adminName,
+      ) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -276,10 +381,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   Widget _buildDashboard(
-    BuildContext context,
-    String adminName,
-    _AdminColors colors,
-  ) {
+      BuildContext context,
+      String adminName,
+      _AdminColors colors,
+      ) {
     return Scaffold(
       backgroundColor: colors.pageBg,
 
@@ -407,21 +512,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
                 child: colors.isDark
                     ? const Icon(
-                        Icons.wb_sunny_rounded,
-                        key: ValueKey('dark_icon_admin'),
-                        color: Color(0xFFFDE047),
-                        size: 20,
-                      )
+                  Icons.wb_sunny_rounded,
+                  key: ValueKey('dark_icon_admin'),
+                  color: Color(0xFFFDE047),
+                  size: 20,
+                )
                     : Icon(
-                        Icons.nightlight_round,
-                        key: const ValueKey('light_icon_admin'),
-                        color: colors.primary,
-                        size: 20,
-                      ),
+                  Icons.nightlight_round,
+                  key: const ValueKey('light_icon_admin'),
+                  color: colors.primary,
+                  size: 20,
+                ),
               ),
               onPressed: () {
                 AdminThemeManager.isDarkMode.value =
-                    !AdminThemeManager.isDarkMode.value;
+                !AdminThemeManager.isDarkMode.value;
               },
             ),
           ),
@@ -448,6 +553,37 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 color: colors.primary,
                 size: 20,
               ),
+            ),
+          ),
+          // Notification History Button
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(
+                alpha: colors.isDark ? 0.2 : 0.08,
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              tooltip: 'Notification History',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 36,
+                minHeight: 36,
+              ),
+              icon: Icon(
+                Icons.notifications_outlined,
+                color: colors.primary,
+                size: 21,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationHistoryScreen(),
+                  ),
+                );
+              },
             ),
           ),
 
@@ -576,10 +712,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   Widget _welcomeBanner(
-    BuildContext context,
-    String adminName,
-    _AdminColors colors,
-  ) {
+      BuildContext context,
+      String adminName,
+      _AdminColors colors,
+      ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 360;
@@ -593,15 +729,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               end: Alignment.bottomRight,
               colors: colors.isDark
                   ? const [
-                      Color(0xFF064E3B),
-                      Color(0xFF047857),
-                      Color(0xFF065F46),
-                    ]
+                Color(0xFF064E3B),
+                Color(0xFF047857),
+                Color(0xFF065F46),
+              ]
                   : const [
-                      Color(0xFF065F46),
-                      Color(0xFF059669),
-                      Color(0xFF10B981),
-                    ],
+                Color(0xFF065F46),
+                Color(0xFF059669),
+                Color(0xFF10B981),
+              ],
             ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
@@ -775,7 +911,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection(streamCollection).snapshots(),
             builder: (context, snapshot) {
-              final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+              final count = snapshot.hasData
+                  ? snapshot.data!.docs.where((doc) {
+                if (streamCollection != 'applications') return true;
+                final data = doc.data() as Map<String, dynamic>;
+                return data['adminArchived'] != true;
+              }).length
+                  : 0;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
@@ -922,7 +1064,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         int count = 0;
 
         if (snapshot.hasData) {
-          count = snapshot.data!.docs.length;
+          if (collection == 'applications') {
+            count = snapshot.data!.docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['adminArchived'] != true;
+            }).length;
+          } else {
+            count = snapshot.data!.docs.length;
+          }
         }
 
         return Container(
@@ -1243,11 +1392,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   Widget _jobCard(
-    BuildContext context,
-    String jobId,
-    Map<String, dynamic> data,
-    _AdminColors colors,
-  ) {
+      BuildContext context,
+      String jobId,
+      Map<String, dynamic> data,
+      _AdminColors colors,
+      ) {
     final title = data['title']?.toString() ?? 'Unknown Job';
     final company = data['company']?.toString() ?? 'Unknown Company';
     final location = data['location']?.toString() ?? 'Unknown Location';
@@ -1514,13 +1663,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   end: Alignment.bottomRight,
                                   colors: colors.isDark
                                       ? [
-                                          const Color(0xFF064E3B).withValues(alpha: 0.35),
-                                          const Color(0xFF10B981).withValues(alpha: 0.18),
-                                        ]
+                                    const Color(0xFF064E3B).withValues(alpha: 0.35),
+                                    const Color(0xFF10B981).withValues(alpha: 0.18),
+                                  ]
                                       : [
-                                          const Color(0xFF059669).withValues(alpha: 0.12),
-                                          const Color(0xFF10B981).withValues(alpha: 0.06),
-                                        ],
+                                    const Color(0xFF059669).withValues(alpha: 0.12),
+                                    const Color(0xFF10B981).withValues(alpha: 0.06),
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
@@ -1584,13 +1733,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   end: Alignment.bottomRight,
                                   colors: colors.isDark
                                       ? [
-                                          Colors.redAccent.withValues(alpha: 0.28),
-                                          Colors.redAccent.withValues(alpha: 0.14),
-                                        ]
+                                    Colors.redAccent.withValues(alpha: 0.28),
+                                    Colors.redAccent.withValues(alpha: 0.14),
+                                  ]
                                       : [
-                                          Colors.redAccent.withValues(alpha: 0.12),
-                                          Colors.redAccent.withValues(alpha: 0.06),
-                                        ],
+                                    Colors.redAccent.withValues(alpha: 0.12),
+                                    Colors.redAccent.withValues(alpha: 0.06),
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
@@ -1709,10 +1858,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   Future<void> _editJob(
-    BuildContext context,
-    String jobId,
-    Map<String, dynamic> data,
-  ) async {
+      BuildContext context,
+      String jobId,
+      Map<String, dynamic> data,
+      ) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1729,11 +1878,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   void _confirmDeleteJob(
-    BuildContext context,
-    String jobId,
-    String jobTitle,
-    _AdminColors colors,
-  ) {
+      BuildContext context,
+      String jobId,
+      String jobTitle,
+      _AdminColors colors,
+      ) {
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -1799,9 +1948,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   Future<void> _deleteJob(
-    BuildContext context,
-    String jobId,
-  ) async {
+      BuildContext context,
+      String jobId,
+      ) async {
     try {
       await FirebaseFirestore.instance
           .collection('jobs')
@@ -1849,7 +1998,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           );
         }
 
-        final applications = snapshot.data?.docs ?? [];
+        final applications = (snapshot.data?.docs ?? [])
+            .where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return data['adminArchived'] != true;
+        })
+            .toList();
 
         if (applications.isEmpty) {
           return _emptyCard(
@@ -1916,17 +2070,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   Widget _applicationCard(
-    BuildContext context,
-    String applicationId,
-    Map<String, dynamic> data,
-    _AdminColors colors,
-  ) {
+      BuildContext context,
+      String applicationId,
+      Map<String, dynamic> data,
+      _AdminColors colors,
+      ) {
     final jobTitle = data['jobTitle']?.toString() ?? 'Unknown Job';
     final company = data['company']?.toString() ?? 'Unknown Company';
     final userId = data['userId']?.toString() ?? 'Unknown User';
     final status = data['status']?.toString() ?? 'Applied';
     final appliedAt =
-        data['appliedAt'] is Timestamp ? data['appliedAt'] as Timestamp : null;
+    data['appliedAt'] is Timestamp ? data['appliedAt'] as Timestamp : null;
 
     // Status Accent Color for indicator & accent bar
     Color statusColor = const Color(0xFF3B82F6);
@@ -1947,6 +2101,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         break;
       case 'rejected':
         statusColor = const Color(0xFFEF4444);
+        break;
+      case 'cancelled':
+        statusColor = const Color(0xFF6B7280);
         break;
     }
 
@@ -2067,7 +2224,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       const SizedBox(height: 12),
 
                       // Recruitment Pipeline Visual Tracker
-                      _buildApplicationPipeline(status, colors),
+                      status.toLowerCase() == 'cancelled'
+                          ? CancelledApplicationNotice(
+                        isDark: colors.isDark,
+                        textColor: colors.textPrimary,
+                      )
+                          : _buildApplicationPipeline(status, colors),
 
                       const SizedBox(height: 12),
 
@@ -2094,61 +2256,102 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                       const SizedBox(height: 14),
 
-                      // Action Button to update status
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colors.primary.withValues(
-                              alpha: colors.isDark ? 0.16 : 0.08,
-                            ),
-                            foregroundColor: colors.primary,
-                            elevation: 0,
-                            side: BorderSide(
-                              color: colors.primary.withValues(alpha: 0.35),
-                              width: 1.2,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                          ),
-                          onPressed: () {
-                            _showStatusDialog(
+                      // Applicant asked to cancel -> admin approves / declines
+                      CancelRequestBanner(
+                        applicationId: applicationId,
+                        data: data,
+                        isDark: colors.isDark,
+                        textColor: colors.textPrimary,
+                        mutedColor: colors.textSecondary,
+                      ),
+
+
+                      if (status.trim().toLowerCase() == 'cancelled') ...[
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _confirmRemoveCancelledApplication(
                               context,
                               applicationId,
-                              status,
+                              jobTitle,
                               colors,
-                            );
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.tune_rounded,
-                                size: 18,
-                                color: colors.primary,
+                            ),
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 19,
+                            ),
+                            label: const Text('Remove'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.redAccent,
+                              side: BorderSide(
+                                color: Colors.redAccent.withValues(alpha: 0.4),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Update Application Status',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13.5,
-                                  color: colors.primary,
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const Spacer(),
-                              Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 13,
-                                color: colors.primary,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
+                      ],
+
+
+                      // Action Button to update status (not for cancelled ones)
+                      if (status.toLowerCase() != 'cancelled')
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colors.primary.withValues(
+                                alpha: colors.isDark ? 0.16 : 0.08,
+                              ),
+                              foregroundColor: colors.primary,
+                              elevation: 0,
+                              side: BorderSide(
+                                color: colors.primary.withValues(alpha: 0.35),
+                                width: 1.2,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                            ),
+                            onPressed: () {
+                              _showStatusDialog(
+                                context,
+                                applicationId,
+                                status,
+                                colors,
+                              );
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.tune_rounded,
+                                  size: 18,
+                                  color: colors.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Update Application Status',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.5,
+                                    color: colors.primary,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 13,
+                                  color: colors.primary,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -2165,10 +2368,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   Widget _applicantIdentityBox(
-    BuildContext context,
-    String userId,
-    _AdminColors colors,
-  ) {
+      BuildContext context,
+      String userId,
+      _AdminColors colors,
+      ) {
     return FutureBuilder<Map<String, dynamic>?>(
       future: _getUserData(userId),
       builder: (context, snapshot) {
@@ -2438,20 +2641,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: Center(
                   child: isDone
                       ? Icon(
-                          (isCurrent && isRejected)
-                              ? Icons.close_rounded
-                              : Icons.check_rounded,
-                          size: 10,
-                          color: Colors.white,
-                        )
+                    (isCurrent && isRejected)
+                        ? Icons.close_rounded
+                        : Icons.check_rounded,
+                    size: 10,
+                    color: Colors.white,
+                  )
                       : Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: stepColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: stepColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 4),
@@ -2580,11 +2783,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // =====================================================
 
   void _showStatusDialog(
-    BuildContext context,
-    String applicationId,
-    String currentStatus,
-    _AdminColors colors,
-  ) {
+      BuildContext context,
+      String applicationId,
+      String currentStatus,
+      _AdminColors colors,
+      ) {
     final statuses = [
       'Applied',
       'Under Review',
@@ -2615,9 +2818,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
         return StatefulBuilder(
           builder: (
-            context,
-            setState,
-          ) {
+              context,
+              setState,
+              ) {
             return AlertDialog(
               backgroundColor: colors.cardBg,
               shape: RoundedRectangleBorder(
@@ -2654,7 +2857,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ),
                 items: statuses.map(
-                  (status) {
+                      (status) {
                     return DropdownMenuItem<String>(
                       value: status,
                       child: Text(status),

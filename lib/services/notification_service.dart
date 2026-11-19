@@ -1,3 +1,5 @@
+
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -67,6 +69,8 @@ class HistoryFields {
   static const String category = 'category';
   static const String jobId = 'jobId';
   static const String senderUid = 'senderUid';
+  static const String recipientUid = 'recipientUid';
+  static const String applicationId = 'applicationId';
   static const String createdAt = 'createdAt';
 
   /// Field on `notification_settings/{uid}` listing items the user deleted.
@@ -80,6 +84,7 @@ class HistoryAudience {
   static const String everyone = 'everyone';
   static const String admins = 'admins';
   static const String category = 'category';
+  static const String user = 'user';
 }
 
 class NotificationHistoryItem {
@@ -92,6 +97,8 @@ class NotificationHistoryItem {
     required this.createdAt,
     this.category,
     this.jobId,
+    this.recipientUid,
+    this.applicationId,
   });
 
   final String id;
@@ -101,6 +108,8 @@ class NotificationHistoryItem {
   final String audience;
   final String? category;
   final String? jobId;
+  final String? recipientUid;
+  final String? applicationId;
   final DateTime? createdAt;
 
   factory NotificationHistoryItem.fromMap(String id, Map<String, dynamic> m) {
@@ -116,6 +125,8 @@ class NotificationHistoryItem {
       m[HistoryFields.audience]?.toString() ?? HistoryAudience.everyone,
       category: (category == null || category.isEmpty) ? null : category,
       jobId: m[HistoryFields.jobId]?.toString(),
+      recipientUid: m[HistoryFields.recipientUid]?.toString(),
+      applicationId: m[HistoryFields.applicationId]?.toString(),
       createdAt: ts is Timestamp ? ts.toDate() : null,
     );
   }
@@ -186,6 +197,7 @@ class NotificationService {
   bool _initialized = false;
   String? _currentUid;
   bool _isAdmin = false;
+  String? _adminCheckedUid;
   DateTime? _lastInterviewSync;
 
   /// Notifications only run on Android / iOS builds (not web or desktop).
@@ -195,6 +207,25 @@ class NotificationService {
               defaultTargetPlatform == TargetPlatform.iOS);
 
   bool get isAdmin => _isAdmin;
+
+  /// Resolves the admin role from Firestore. Works on EVERY platform (web
+  /// included) and does not depend on push notifications being initialised,
+  /// so screens can trust [isAdmin] after awaiting this.
+  Future<bool> refreshAdminStatus() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      _isAdmin = false;
+      _adminCheckedUid = null;
+      return false;
+    }
+
+    if (_adminCheckedUid == uid) return _isAdmin;
+
+    _isAdmin = await _checkIsAdmin(uid);
+    _adminCheckedUid = uid;
+    return _isAdmin;
+  }
 
   // =====================================================================
   // INIT  (call once from main(), after Firebase.initializeApp)
@@ -268,6 +299,7 @@ class NotificationService {
     if (user == null) {
       _currentUid = null;
       _isAdmin = false;
+      _adminCheckedUid = null;
       return;
     }
 
@@ -286,6 +318,7 @@ class NotificationService {
     final messaging = FirebaseMessaging.instance;
 
     _isAdmin = await _checkIsAdmin(uid);
+    _adminCheckedUid = uid;
 
     final settingsRef = _db.collection('notification_settings').doc(uid);
     final snapshot = await settingsRef.get();
@@ -306,17 +339,31 @@ class NotificationService {
     }, SetOptions(merge: true));
 
     // ---- topics ---------------------------------------------------------
-    if (announcements) {
-      await _subscribe(NotificationTopics.allUsers);
-    } else {
-      await _unsubscribe(NotificationTopics.allUsers);
-    }
-
+    // Topic subscriptions belong to the DEVICE token, not the account, so every
+    // login explicitly removes the topics that do not belong to this role.
     if (_isAdmin) {
+      // Admin: ONLY admin notifications (new applications, reported posts).
+      await _unsubscribe(NotificationTopics.allUsers);
+      for (final category in JobCategories.all) {
+        await _unsubscribe(NotificationTopics.forCategory(category));
+      }
       await _subscribe(NotificationTopics.admins);
     } else {
-      for (final category in categories) {
-        await _subscribe(NotificationTopics.forCategory(category));
+      // Job seeker: announcements + chosen job categories, never admin topics.
+      await _unsubscribe(NotificationTopics.admins);
+
+      if (announcements) {
+        await _subscribe(NotificationTopics.allUsers);
+      } else {
+        await _unsubscribe(NotificationTopics.allUsers);
+      }
+
+      for (final category in JobCategories.all) {
+        if (categories.contains(category)) {
+          await _subscribe(NotificationTopics.forCategory(category));
+        } else {
+          await _unsubscribe(NotificationTopics.forCategory(category));
+        }
       }
 
       // Job-seeker only local features.
@@ -390,13 +437,17 @@ class NotificationService {
     _isAdmin = false;
   }
 
+
   Future<void> _subscribe(String topic) async {
     try {
       await FirebaseMessaging.instance.subscribeToTopic(topic);
+
+      debugPrint('FCM SUBSCRIBED SUCCESS: $topic');
     } catch (e) {
-      debugPrint('Subscribe $topic failed: $e');
+      debugPrint('FCM SUBSCRIBE FAILED: $topic -> $e');
     }
   }
+
 
   Future<void> _unsubscribe(String topic) async {
     try {
@@ -486,46 +537,67 @@ class NotificationService {
     return FirebaseMessaging.instance.getToken();
   }
 
-  /// Sends a real push to THIS device through FCM (full end-to-end test).
+
+  /// Sends a test push through the Node.js backend.
   Future<String> sendTestPush({int delaySeconds = 0}) async {
-    final token = await getDeviceToken();
-    if (token == null) {
-      return 'No FCM token yet. Test on a real Android/iOS device.';
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        return 'Please login before testing notifications.';
+      }
+
+      // Get this device's FCM token.
+      final token = await getDeviceToken();
+
+      if (token == null || token.isEmpty) {
+        return 'No FCM token yet. Test on a real Android/iOS device.';
+      }
+
+      if (delaySeconds > 0) {
+        await Future.delayed(Duration(seconds: delaySeconds));
+      }
+
+      // Ensure the latest token is saved in Firestore.
+      await _db.collection('notification_settings').doc(user.uid).set({
+        'tokens': FieldValue.arrayUnion([token]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      final result = await PushSender.sendToToken(
+        token: token,
+        title: 'CareerWise Test Notification',
+        body: 'Your push notification is working!',
+        data: _data(NotificationTypes.announcement),
+      );
+
+      switch (result) {
+        case PushResult.sent:
+          return 'Test notification sent successfully!';
+        case PushResult.invalidToken:
+          return 'This device token is no longer valid. Restart the app and try again.';
+        case PushResult.notConfigured:
+          return 'Push sending is not configured. Add your service account key '
+              'to assets/config/service_account.json.';
+        case PushResult.failed:
+          return 'Push sending failed. See the debug console for details.';
+      }
+    } catch (e) {
+      debugPrint('Test push error: $e');
+      return 'Failed to send test notification. Please try again.';
     }
-
-    if (delaySeconds > 0) {
-      await Future.delayed(Duration(seconds: delaySeconds));
-    }
-
-    final result = await PushSender.sendToToken(
-      token: token,
-      title: 'CareerWise test notification',
-      body: 'If you can read this, push notifications are working.',
-      data: _data(NotificationTypes.announcement),
-    );
-
-    return _describe(result);
   }
 
-  String _describe(PushResult result) {
-    switch (result) {
-      case PushResult.sent:
-        return 'Notification sent.';
-      case PushResult.invalidToken:
-        return 'This device token is no longer valid.';
-      case PushResult.notConfigured:
-        return 'Push sending is not configured. Add your service account key '
-            'to assets/config/service_account.json.';
-      case PushResult.failed:
-        return 'Sending failed. Check the debug console for details.';
-    }
-  }
 
   // =====================================================================
   // SHOWING LOCAL NOTIFICATIONS
   // =====================================================================
 
   void _onForegroundMessage(RemoteMessage message) {
+
+    debugPrint(
+      'USER FCM RECEIVED: ${message.notification?.title} | ${message.data}',
+    );
     final title = message.notification?.title ?? message.data['title'];
     final body = message.notification?.body ?? message.data['body'];
     if (title == null && body == null) return;
@@ -673,6 +745,7 @@ class NotificationService {
 
     // ---- Employer / admin: root screen is the dashboard ------------------
       case NotificationTypes.newApplication:
+      case NotificationTypes.cancelRequest:
       case NotificationTypes.flaggedPost:
       case NotificationTypes.jobApproved:
       case NotificationTypes.jobRejected:
@@ -753,7 +826,7 @@ class NotificationService {
 
   /// JOB SEEKER submitted an application.
   ///  * local "Application received" notification for the applicant
-  ///  * push "New application" to the job publisher
+  ///  * push "New application" to the job publisher (or all admins)
   Future<void> notifyApplicationSubmitted({
     required String applicationId,
     required String jobId,
@@ -771,22 +844,34 @@ class NotificationService {
         }),
       );
 
-      final title = 'New application received';
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      var ownerUid = publisherId ?? '';
+      if (ownerUid.isEmpty) {
+        final jobDoc = await _db.collection('jobs').doc(jobId).get();
+        ownerUid = jobDoc.data()?['publisherId']?.toString() ?? '';
+      }
+
+      const title = 'New application received';
       final body = '${_currentUserName()} applied for $jobTitle.';
+
+      await _saveHistory(
+        title: title,
+        body: body,
+        type: NotificationTypes.newApplication,
+        audience: HistoryAudience.admins,
+        jobId: jobId,
+      );
+
       final data = _data(NotificationTypes.newApplication, {
         'applicationId': applicationId,
         'jobId': jobId,
       });
 
-      if (publisherId != null && publisherId.isNotEmpty) {
-        await sendToUser(
-          uid: publisherId,
-          title: title,
-          body: body,
-          data: data,
-        );
+      if (ownerUid.isNotEmpty && ownerUid != user.uid) {
+        await sendToUser(uid: ownerUid, title: title, body: body, data: data);
       } else {
-        // Older jobs have no publisherId: let the admins know instead.
         await sendToTopic(
           topic: NotificationTopics.admins,
           title: title,
@@ -975,41 +1060,200 @@ class NotificationService {
     });
   }
 
-  /// ADMIN BROADCAST to a topic (defaults to every user).
-  ///
-  /// Pass [category] to target one job category (subscribers of that
-  /// category get the push). Every broadcast is also saved to the
-  /// `notification_history` collection so users can read it later.
+  /// APPLICANT asked to cancel -> tell the publisher / admins.
+  Future<void> notifyCancellationRequested({
+    required String applicationId,
+    required String jobId,
+    required String jobTitle,
+    String? publisherId,
+    String? reason,
+  }) {
+    return _guard(() async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final cleanReason = reason?.trim() ?? '';
+      const title = 'Cancellation request';
+      final body = '${_currentUserName()} asked to cancel their application '
+          'for $jobTitle.'
+          '${cleanReason.isEmpty ? '' : ' Reason: $cleanReason'}';
+
+      await _saveHistory(
+        title: title,
+        body: body,
+        type: NotificationTypes.cancelRequest,
+        audience: HistoryAudience.admins,
+        jobId: jobId,
+      );
+
+      final data = _data(NotificationTypes.cancelRequest, {
+        'applicationId': applicationId,
+        'jobId': jobId,
+      });
+
+      final ownerUid = publisherId ?? '';
+      if (ownerUid.isNotEmpty && ownerUid != user.uid) {
+        await sendToUser(uid: ownerUid, title: title, body: body, data: data);
+      } else {
+        await sendToTopic(
+          topic: NotificationTopics.admins,
+          title: title,
+          body: body,
+          data: data,
+        );
+      }
+    });
+  }
+
+  /// ADMIN approved / declined the cancellation -> tell the applicant.
+
+
+
+  Future<void> notifyCancellationDecision({
+    required String applicationId,
+    required String applicantUid,
+    required String jobTitle,
+    required String company,
+    required bool approved,
+    required String currentStatus,
+  }) async {
+    final title = approved
+        ? 'Cancellation Request Approved'
+        : 'Cancellation Request Declined';
+
+    final body = approved
+        ? 'Your cancellation request for $jobTitle at $company was approved.'
+        : 'Your cancellation request for $jobTitle at $company was declined.';
+
+    // STEP 1: Save notification history
+    try {
+      await _db
+          .collection('notification_history')
+          .doc('cancel_decision_$applicationId')
+          .set({
+        'title': title,
+        'body': body,
+        'type': NotificationTypes.applicationStatus,
+        'audience': HistoryAudience.user,
+        'recipientUid': applicantUid,
+        'applicationId': applicationId,
+        'senderUid': FirebaseAuth.instance.currentUser?.uid ?? '',
+        'status': approved ? 'Cancelled' : currentStatus,
+        'approved': approved,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('CANCEL HISTORY SAVED');
+    } catch (e) {
+      debugPrint('CANCEL HISTORY ERROR: $e');
+    }
+
+    // STEP 2: Send push notification
+    try {
+      final settings = await _db
+          .collection('notification_settings')
+          .doc(applicantUid)
+          .get();
+
+      final tokens = List<String>.from(
+        settings.data()?['tokens'] ?? [],
+      );
+
+      debugPrint('APPLICANT TOKEN COUNT: ${tokens.length}');
+
+      for (final token in tokens) {
+        final result = await PushSender.sendToToken(
+          token: token,
+          title: title,
+          body: body,
+          data: {
+            'type': NotificationTypes.applicationStatus,
+            'applicationId': applicationId,
+            'status': approved ? 'Cancelled' : currentStatus,
+          },
+        );
+
+        debugPrint('CANCEL PUSH RESULT: $result');
+      }
+    } catch (e) {
+      debugPrint('CANCEL PUSH ERROR: $e');
+    }
+  }
+
   Future<PushResult> broadcastAnnouncement({
     required String title,
     required String body,
-    String topic = NotificationTopics.allUsers,
+    required String topic,
     String? category,
   }) async {
-    final isCategory = category != null && category.isNotEmpty;
-    final effectiveTopic =
-    isCategory ? NotificationTopics.forCategory(category) : topic;
+    final user = FirebaseAuth.instance.currentUser;
 
-    await _saveHistory(
-      title: title,
-      body: body,
-      type: NotificationTypes.announcement,
-      category: isCategory ? category : null,
-      audience: isCategory
-          ? HistoryAudience.category
-          : (topic == NotificationTopics.admins
-          ? HistoryAudience.admins
-          : HistoryAudience.everyone),
+    if (user == null) {
+      throw StateError('Please login first.');
+    }
+
+    final admin = await _checkIsAdmin(user.uid);
+
+    if (!admin) {
+      throw StateError('Only admins can send announcements.');
+    }
+
+    final cleanTitle = title.trim();
+    final cleanBody = body.trim();
+    final cleanCategory = category?.trim();
+
+    if (cleanTitle.isEmpty || cleanBody.isEmpty) {
+      throw ArgumentError('Title and message are required.');
+    }
+
+    final bool isCategory =
+        cleanCategory != null && cleanCategory.isNotEmpty;
+
+    final bool isAdmins = !isCategory &&
+        topic == NotificationTopics.admins;
+
+    final audience = isCategory
+        ? HistoryAudience.category
+        : isAdmins
+        ? HistoryAudience.admins
+        : HistoryAudience.everyone;
+
+    final targetTopic = isCategory
+        ? NotificationTopics.forCategory(cleanCategory)
+        : isAdmins
+        ? NotificationTopics.admins
+        : NotificationTopics.allUsers;
+
+    await _db.collection(HistoryFields.collection).add({
+      HistoryFields.title: cleanTitle,
+      HistoryFields.body: cleanBody,
+      HistoryFields.type: NotificationTypes.announcement,
+      HistoryFields.audience: audience,
+      if (isCategory)
+        HistoryFields.category: cleanCategory,
+      HistoryFields.senderUid: user.uid,
+      HistoryFields.createdAt: FieldValue.serverTimestamp(),
+    });
+
+    final result = await sendToTopic(
+      topic: targetTopic,
+      title: cleanTitle,
+      body: cleanBody,
+      data: _data(
+        NotificationTypes.announcement,
+        {
+          if (isCategory) 'category': cleanCategory,
+        },
+      ),
     );
 
-    return sendToTopic(
-      topic: effectiveTopic,
-      title: title,
-      body: body,
-      data: _data(NotificationTypes.announcement, {
-        if (isCategory) 'category': category,
-      }),
+    debugPrint(
+      'BROADCAST RESULT: $result, '
+          'AUDIENCE: $audience, '
+          'TOPIC: $targetTopic',
     );
+
+    return result;
   }
 
   // =====================================================================
@@ -1041,19 +1285,97 @@ class NotificationService {
     }
   }
 
-  /// Latest notifications sent by admins / for job categories.
-  /// Category filtering happens in the UI, so no composite index is needed.
+  /// Watches public, category, admin and user-specific history separately.
+  /// This avoids reading private notifications belonging to other users.
+  /// Firestore rules must enforce recipientUid == request.auth.uid for
+  /// audience == 'user' records. Composite indexes may be requested.
   Stream<List<NotificationHistoryItem>> watchHistory({int limit = 200}) {
-    return _db
-        .collection(HistoryFields.collection)
-        .orderBy(HistoryFields.createdAt, descending: true)
-        .limit(limit)
-        .snapshots()
-        .map(
-          (snap) => snap.docs
-          .map((d) => NotificationHistoryItem.fromMap(d.id, d.data()))
-          .toList(),
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return Stream.value(<NotificationHistoryItem>[]);
+
+    late StreamController<List<NotificationHistoryItem>> controller;
+    final subscriptions = <StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>[];
+    final latest = <String, List<NotificationHistoryItem>>{};
+    final expected = <String>{};
+    bool closed = false;
+
+    void emit() {
+      if (closed || latest.length != expected.length) return;
+      final merged = <String, NotificationHistoryItem>{};
+      for (final items in latest.values) {
+        for (final item in items) {
+          merged[item.id] = item;
+        }
+      }
+      final sorted = merged.values.toList()
+        ..sort((a, b) {
+          final at = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final bt = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          return bt.compareTo(at);
+        });
+      controller.add(sorted.take(limit).toList());
+    }
+
+    void listenTo(String key, Query<Map<String, dynamic>> query) {
+      expected.add(key);
+      subscriptions.add(query.snapshots().listen(
+            (snapshot) {
+          latest[key] = snapshot.docs
+              .map((doc) => NotificationHistoryItem.fromMap(doc.id, doc.data()))
+              .toList();
+          emit();
+        },
+        onError: (Object error, StackTrace stack) {
+          debugPrint('[NotificationHistory][$key] QUERY ERROR: $error');
+          if (error is FirebaseException) {
+            debugPrint('[NotificationHistory][$key] CODE: ${error.code}');
+            debugPrint('[NotificationHistory][$key] MESSAGE: ${error.message}');
+          }
+          if (!closed) controller.addError(error, stack);
+        },
+      ));
+    }
+
+    controller = StreamController<List<NotificationHistoryItem>>(
+      onListen: () {
+        Future<void>(() async {
+          try {
+            final admin = await _checkIsAdmin(uid);
+            if (closed) return;
+            final history = _db.collection(HistoryFields.collection);
+
+            Query<Map<String, dynamic>> forAudience(String audience) => history
+                .where(HistoryFields.audience, isEqualTo: audience)
+                .orderBy(HistoryFields.createdAt, descending: true)
+                .limit(limit);
+
+            listenTo('everyone', forAudience(HistoryAudience.everyone));
+            listenTo('category', forAudience(HistoryAudience.category));
+            if (admin) {
+              listenTo('admins', forAudience(HistoryAudience.admins));
+            }
+            listenTo(
+              'user',
+              history
+                  .where(HistoryFields.audience, isEqualTo: HistoryAudience.user)
+                  .where(HistoryFields.recipientUid, isEqualTo: uid)
+                  .orderBy(HistoryFields.createdAt, descending: true)
+                  .limit(limit),
+            );
+          } catch (error, stack) {
+            debugPrint('[NotificationHistory] SETUP ERROR: $error');
+            if (!closed) controller.addError(error, stack);
+          }
+        });
+      },
+      onCancel: () async {
+        closed = true;
+        for (final subscription in subscriptions) {
+          await subscription.cancel();
+        }
+      },
     );
+    return controller.stream;
   }
 
   /// IDs of history items THIS user deleted (hidden only for this user).
@@ -1380,3 +1702,5 @@ class _ResumeObserver with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) onResumed();
   }
 }
+
+

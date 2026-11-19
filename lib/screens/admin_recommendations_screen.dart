@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -97,7 +99,7 @@ class _AdminRecommendationsScreenState
 
                               // Content list
                               if (snapshot.connectionState ==
-                                      ConnectionState.waiting &&
+                                  ConnectionState.waiting &&
                                   !snapshot.hasData)
                                 _loadingCard(colors)
                               else if (snapshot.hasError)
@@ -106,34 +108,34 @@ class _AdminRecommendationsScreenState
                                   colors,
                                 )
                               else if (filteredDocs.isEmpty)
-                                _emptyCard(
-                                  title: _searchQuery.isEmpty
-                                      ? 'No AI recommendations found'
-                                      : 'No matching recommendations',
-                                  subtitle: _searchQuery.isEmpty
-                                      ? 'AI career advice assessments will appear here as users explore.'
-                                      : 'Try searching with a different career goal, skill or education.',
-                                  colors: colors,
-                                )
-                              else
-                                ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: filteredDocs.length,
-                                  separatorBuilder: (context, index) =>
-                                      const SizedBox(height: 16),
-                                  itemBuilder: (context, index) {
-                                    final doc = filteredDocs[index];
-                                    final data =
-                                        doc.data() as Map<String, dynamic>? ??
-                                            {};
-                                    return _recommendationCard(
-                                      docId: doc.id,
-                                      data: data,
-                                      colors: colors,
-                                    );
-                                  },
-                                ),
+                                  _emptyCard(
+                                    title: _searchQuery.isEmpty
+                                        ? 'No AI recommendations found'
+                                        : 'No matching recommendations',
+                                    subtitle: _searchQuery.isEmpty
+                                        ? 'AI career advice assessments will appear here as users explore.'
+                                        : 'Try searching with a different career goal, skill or education.',
+                                    colors: colors,
+                                  )
+                                else
+                                  ListView.separated(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: filteredDocs.length,
+                                    separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 16),
+                                    itemBuilder: (context, index) {
+                                      final doc = filteredDocs[index];
+                                      final data =
+                                          doc.data() as Map<String, dynamic>? ??
+                                              {};
+                                      return _recommendationCard(
+                                        docId: doc.id,
+                                        data: data,
+                                        colors: colors,
+                                      );
+                                    },
+                                  ),
                             ],
                           ),
                         ),
@@ -406,18 +408,18 @@ class _AdminRecommendationsScreenState
             ),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
-                    icon: Icon(
-                      Icons.clear_rounded,
-                      color: colors.textMuted,
-                      size: 18,
-                    ),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                  )
+              icon: Icon(
+                Icons.clear_rounded,
+                color: colors.textMuted,
+                size: 18,
+              ),
+              onPressed: () {
+                _searchController.clear();
+                setState(() {
+                  _searchQuery = '';
+                });
+              },
+            )
                 : null,
             filled: true,
             fillColor: colors.cardBg,
@@ -528,6 +530,328 @@ class _AdminRecommendationsScreenState
   // =========================================================
   // RECOMMENDATION CARD
   // =========================================================
+
+  // ==========================================================
+  // RECOMMENDATION FORMATTING
+  // The advisor saves the AI answer as a JSON string. Show it as readable
+  // sections instead of raw JSON. Old plain-text entries still display as is.
+  // ==========================================================
+
+  Map<String, dynamic>? _parseRecommendation(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic> &&
+          (decoded['careers'] is List ||
+              decoded['strengths'] is List ||
+              decoded['actionPlan'] is List)) {
+        return decoded;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  List<String> _stringList(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .map((e) => e.toString().trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  List<Map<String, dynamic>> _mapList(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  /// Readable plain text (used by the Copy button).
+  String _plainRecommendation(String raw) {
+    final data = _parseRecommendation(raw);
+    if (data == null) return raw;
+
+    final out = StringBuffer();
+    final careers = _mapList(data['careers']);
+
+    for (var i = 0; i < careers.length; i++) {
+      final c = careers[i];
+      out.writeln('${i + 1}. ${c['title'] ?? ''}');
+      if ((c['whySuitable'] ?? '').toString().isNotEmpty) {
+        out.writeln('   ${c['whySuitable']}');
+      }
+      for (final entry in {
+        'Skills to develop': c['skillsToDevelop'],
+        'Learning areas': c['learningAreas'],
+        'Technologies': c['technologies'],
+      }.entries) {
+        final items = _stringList(entry.value);
+        if (items.isNotEmpty) out.writeln('   ${entry.key}: ${items.join(', ')}');
+      }
+      out.writeln();
+    }
+
+    final strengths = _stringList(data['strengths']);
+    if (strengths.isNotEmpty) {
+      out.writeln('Strengths');
+      for (final item in strengths) {
+        out.writeln('- $item');
+      }
+      out.writeln();
+    }
+
+    final plan = _stringList(data['actionPlan']);
+    if (plan.isNotEmpty) {
+      out.writeln('Action plan');
+      for (var i = 0; i < plan.length; i++) {
+        out.writeln('${i + 1}. ${plan[i]}');
+      }
+    }
+
+    return out.toString().trim();
+  }
+
+  Widget _recommendationBody(
+      String raw,
+      bool expanded,
+      _RecColors colors,
+      ) {
+    final data = _parseRecommendation(raw);
+
+    // Old / plain-text recommendation: show as before.
+    if (data == null) {
+      return Text(
+        raw,
+        maxLines: expanded ? 50 : 3,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: 13, color: colors.textPrimary, height: 1.5),
+      );
+    }
+
+    final careers = _mapList(data['careers']);
+    final strengths = _stringList(data['strengths']);
+    final actionPlan = _stringList(data['actionPlan']);
+
+    // Collapsed: just the recommended career titles.
+    if (!expanded) {
+      return Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final c in careers)
+            _miniChip(
+              (c['title'] ?? '').toString(),
+              colors,
+              icon: Icons.work_outline_rounded,
+              strong: true,
+            ),
+        ],
+      );
+    }
+
+    // Expanded: full, structured advice.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < careers.length; i++)
+          _careerBlock(i + 1, careers[i], colors),
+        if (strengths.isNotEmpty) ...[
+          _sectionTitle('STRENGTHS', Icons.bolt_rounded, colors),
+          const SizedBox(height: 6),
+          for (final item in strengths) _bullet(item, colors),
+          const SizedBox(height: 12),
+        ],
+        if (actionPlan.isNotEmpty) ...[
+          _sectionTitle('ACTION PLAN', Icons.checklist_rounded, colors),
+          const SizedBox(height: 6),
+          for (var i = 0; i < actionPlan.length; i++)
+            _bullet(actionPlan[i], colors, number: i + 1),
+        ],
+      ],
+    );
+  }
+
+  Widget _careerBlock(int index, Map<String, dynamic> c, _RecColors colors) {
+    final why = (c['whySuitable'] ?? '').toString().trim();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.iconBoxBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$index',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: colors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  (c['title'] ?? '').toString(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (why.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              why,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.45,
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
+          _labeledChips('Skills to develop', _stringList(c['skillsToDevelop']), colors),
+          _labeledChips('Learning areas', _stringList(c['learningAreas']), colors),
+          _labeledChips('Technologies', _stringList(c['technologies']), colors),
+        ],
+      ),
+    );
+  }
+
+  Widget _labeledChips(String label, List<String> items, _RecColors colors) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: colors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [for (final i in items) _miniChip(i, colors)],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniChip(
+      String text,
+      _RecColors colors, {
+        IconData? icon,
+        bool strong = false,
+      }) {
+    if (text.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: strong ? colors.iconBoxBg : colors.cardSurface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: strong ? colors.primary.withValues(alpha: 0.4) : colors.cardBorder,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: colors.primary),
+            const SizedBox(width: 5),
+          ],
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
+                color: strong ? colors.primary : colors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String text, IconData icon, _RecColors colors) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: colors.primary),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+            color: colors.primary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _bullet(String text, _RecColors colors, {int? number}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 20,
+            child: Text(
+              number != null ? '$number.' : '•',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: colors.primary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.45,
+                color: colors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _recommendationCard({
     required String docId,
@@ -655,9 +979,9 @@ class _AdminRecommendationsScreenState
           const SizedBox(height: 14),
 
           // Skills & Interests pills
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _infoPill(
                 icon: Icons.code_rounded,
@@ -665,13 +989,15 @@ class _AdminRecommendationsScreenState
                 color: colors.primary,
                 colors: colors,
               ),
-              if (interests.isNotEmpty)
+              if (interests.isNotEmpty) ...[
+                const SizedBox(height: 8),
                 _infoPill(
                   icon: Icons.favorite_border_rounded,
                   label: 'Interests: $interests',
                   color: const Color(0xFF8B5CF6),
                   colors: colors,
                 ),
+              ],
             ],
           ),
 
@@ -709,16 +1035,7 @@ class _AdminRecommendationsScreenState
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  recommendation,
-                  maxLines: isExpanded ? 50 : 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: colors.textPrimary,
-                    height: 1.5,
-                  ),
-                ),
+                _recommendationBody(recommendation, isExpanded, colors),
                 const SizedBox(height: 6),
                 InkWell(
                   onTap: () {
@@ -791,7 +1108,9 @@ class _AdminRecommendationsScreenState
                   color: colors.primary,
                 ),
                 onPressed: () {
-                  Clipboard.setData(ClipboardData(text: recommendation));
+                  Clipboard.setData(
+                    ClipboardData(text: _plainRecommendation(recommendation)),
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       behavior: SnackBarBehavior.floating,
@@ -814,6 +1133,7 @@ class _AdminRecommendationsScreenState
     );
   }
 
+
   Widget _infoPill({
     required IconData icon,
     required String label,
@@ -821,27 +1141,41 @@ class _AdminRecommendationsScreenState
     required _RecColors colors,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: colors.isDark ? 0.2 : 0.08),
+        color: color.withValues(
+          alpha: colors.isDark ? 0.2 : 0.08,
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: color.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 5),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 320),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              icon,
+              size: 15,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
             child: Text(
               label,
-              maxLines: 1,
+              softWrap: true,
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11.5,
+                height: 1.4,
                 fontWeight: FontWeight.w600,
                 color: color,
               ),

@@ -145,7 +145,7 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
 
     try {
       final result =
-          await NotificationService.instance.broadcastAnnouncement(
+      await NotificationService.instance.broadcastAnnouncement(
         title: _titleController.text.trim(),
         body: _bodyController.text.trim(),
         topic: _isCategoryAudience
@@ -432,9 +432,9 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   }
 
   void _showSnack(
-    String message, {
-    bool error = false,
-  }) {
+      String message, {
+        bool error = false,
+      }) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
@@ -532,23 +532,31 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
                             const SizedBox(height: 14),
 
                             Center(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.shield_outlined,
-                                    size: 14,
-                                    color: colors.textMuted,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Only verified CareerWise administrators can send broadcast announcements',
-                                    style: TextStyle(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.shield_outlined,
+                                      size: 14,
                                       color: colors.textMuted,
-                                      fontSize: 11,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        'Only verified CareerWise administrators can send broadcast announcements',
+                                        textAlign: TextAlign.center,
+                                        softWrap: true,
+                                        style: TextStyle(
+                                          color: colors.textMuted,
+                                          fontSize: 11,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -577,15 +585,15 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
           end: Alignment.bottomRight,
           colors: colors.isDark
               ? const [
-                  Color(0xFF03442C),
-                  Color(0xFF065F46),
-                  Color(0xFF047857),
-                ]
+            Color(0xFF03442C),
+            Color(0xFF065F46),
+            Color(0xFF047857),
+          ]
               : const [
-                  Color(0xFF047857),
-                  Color(0xFF059669),
-                  Color(0xFF10B981),
-                ],
+            Color(0xFF047857),
+            Color(0xFF059669),
+            Color(0xFF10B981),
+          ],
         ),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
@@ -818,10 +826,10 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
   // =========================================================
 
   Widget _sectionLabel(
-    String title,
-    String subtitle,
-    _BroadcastColors colors,
-  ) {
+      String title,
+      String subtitle,
+      _BroadcastColors colors,
+      ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Column(
@@ -927,55 +935,37 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
               icon: Icons.people_alt_outlined,
               colors: colors,
             ),
-            items: [
-              DropdownMenuItem<String>(
-                value: NotificationTopics.allUsers,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.groups_2_outlined,
-                      size: 20,
-                      color: colors.primary,
-                    ),
-                    const SizedBox(width: 10),
-                    const Text('Everyone (All registered users)'),
-                  ],
+            selectedItemBuilder: (context) => [
+              'Everyone',
+              'Admins only',
+              ...JobCategories.all,
+            ].map((name) {
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+              );
+            }).toList(),
+
+            items: [
+              const DropdownMenuItem<String>(
+                value: NotificationTopics.allUsers,
+                child: Text('Everyone (All registered users)'),
               ),
               const DropdownMenuItem<String>(
                 value: NotificationTopics.admins,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.admin_panel_settings_outlined,
-                      size: 20,
-                      color: Color(0xFF8B5CF6),
-                    ),
-                    SizedBox(width: 10),
-                    Text('Admins only'),
-                  ],
-                ),
+                child: Text('Admins only'),
               ),
               ...JobCategories.all.map((category) {
                 return DropdownMenuItem<String>(
                   value: '$_categoryPrefix$category',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.work_outline_rounded,
-                        size: 19,
-                        color: colors.isDark
-                            ? const Color(0xFF34D399)
-                            : const Color(0xFF0F766E),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          category,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 );
               }),
@@ -983,11 +973,11 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
             onChanged: _isSending
                 ? null
                 : (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _audience = value;
-                    });
-                  },
+              if (value == null) return;
+              setState(() {
+                _audience = value;
+              });
+            },
           ),
 
           const SizedBox(height: 14),
@@ -1149,7 +1139,7 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
             ),
             decoration: _inputDecoration(
               hint:
-                  'Write the announcement message details that users will read upon receiving...',
+              'Write the announcement message details that users will read upon receiving...',
               icon: Icons.notes_rounded,
               alignLabelWithHint: true,
               colors: colors,
@@ -1364,49 +1354,49 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
               duration: const Duration(milliseconds: 200),
               child: _isSending
                   ? const Row(
-                      key: ValueKey('sending'),
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'Broadcasting announcement...',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Row(
-                      key: ValueKey('send'),
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.send_rounded,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          'Send Announcement',
-                          style: TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
+                key: ValueKey('sending'),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
                     ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Broadcasting announcement...',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              )
+                  : const Row(
+                key: ValueKey('send'),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.send_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Send Announcement',
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

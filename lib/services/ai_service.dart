@@ -1,16 +1,17 @@
+
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 class AIService {
-  // ==========================================================
-  // ⚠️ API Key — run කරන්න:
-  // flutter run --dart-define=GEMINI_API_KEY=AIzaSy...
-  // ==========================================================
+  // Gemini configuration
   static const String _apiKey =
   String.fromEnvironment('GEMINI_API_KEY');
 
+  // Replace with a model available to your API key.
   static const String _model = 'gemini-3.8-flash';
 
   static const String _baseUrl =
@@ -26,7 +27,23 @@ class AIService {
     required String education,
     required String careerGoal,
   }) async {
-    final prompt = '''
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        throw Exception(
+          'Please login to generate career recommendations.',
+        );
+      }
+
+      if (_apiKey.isEmpty) {
+        throw Exception(
+          'Gemini API key is missing. Run with '
+              '--dart-define=GEMINI_API_KEY=your_key',
+        );
+      }
+
+      final prompt = '''
 You are an AI career advisor for a mobile application called CareerWise.
 
 Analyze the user's education, skills, interests, and career goals.
@@ -48,10 +65,8 @@ $careerGoal
 Provide a personalized career analysis.
 
 Return ONLY valid JSON.
-
-Do not use markdown.
-Do not use code fences.
-Do not add any explanation outside the JSON.
+Do not use markdown or code fences.
+Do not add explanations outside the JSON.
 
 Use exactly this structure:
 
@@ -70,157 +85,222 @@ Use exactly this structure:
 }
 
 RULES:
-
 - Provide exactly 3 career recommendations.
 - Career titles must be short and searchable job titles.
-- Base the recommendations on the user's actual education, skills, interests, and career goal.
-- Do not give generic recommendations.
-- Make the recommendations practical for a university student or early-career person.
-- Give different career paths when appropriate.
+- Base recommendations on the user's education, skills,
+  interests, and career goal.
+- Avoid generic recommendations.
+- Make recommendations practical for university students
+  or early-career professionals.
+- Suggest different career paths when appropriate.
 - Keep explanations concise.
 - skillsToDevelop must contain practical skills.
 - learningAreas must contain useful learning topics.
-- technologies must contain relevant technologies, tools, or platforms.
-- strengths must be based on the user's provided information.
+- technologies must contain relevant technologies,
+  tools, or platforms.
+- strengths must reflect the user's information.
 - actionPlan must contain realistic next steps.
 ''';
 
-    // ✅ API Key check
-    if (_apiKey.isEmpty) {
-      throw Exception(
-        'Gemini API key is missing. '
-            'Run with --dart-define=GEMINI_API_KEY=AIzaSy...',
+      final decoded = await _askGeminiJson(
+        prompt,
+        temperature: 0.7,
       );
-    }
-
-    final url = Uri.parse(
-      '$_baseUrl/$_model:generateContent?key=$_apiKey',
-    );
-
-    final body = jsonEncode({
-      'contents': [
-        {
-          'role': 'user',
-          'parts': [
-            {'text': prompt}
-          ],
-        }
-      ],
-      'generationConfig': {
-        'responseMimeType': 'application/json',
-        'temperature': 0.7,
-      },
-    });
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: body,
-      );
-
-      // ========================================================
-      // HTTP error handling
-      // ========================================================
-
-      if (response.statusCode == 429) {
-        throw Exception(
-          'AI quota has been reached. Please try again later.',
-        );
-      }
-
-      if (response.statusCode != 200) {
-        String errorMessage = 'HTTP ${response.statusCode}';
-        try {
-          final errJson = jsonDecode(response.body);
-          errorMessage =
-              errJson['error']?['message']?.toString() ?? errorMessage;
-        } catch (_) {}
-        throw Exception('Gemini API error: $errorMessage');
-      }
-
-      // ========================================================
-      // Parse Gemini response
-      // ========================================================
-
-      final Map<String, dynamic> data = jsonDecode(response.body);
-
-      final candidates = data['candidates'] as List?;
-      if (candidates == null || candidates.isEmpty) {
-        throw Exception('Gemini returned no candidates.');
-      }
-
-      final parts = candidates.first['content']?['parts'] as List?;
-      if (parts == null || parts.isEmpty) {
-        throw Exception('Gemini returned an empty response.');
-      }
-
-      final String? text = parts.first['text'] as String?;
-
-      if (text == null || text.trim().isEmpty) {
-        throw Exception('Gemini returned an empty response.');
-      }
-
-      // ========================================================
-      // Clean markdown fences (safety)
-      // ========================================================
-
-      String cleanText = text.trim();
-
-      if (cleanText.startsWith('```json')) {
-        cleanText = cleanText.substring(7).trim();
-      }
-      if (cleanText.startsWith('```')) {
-        cleanText = cleanText.substring(3).trim();
-      }
-      if (cleanText.endsWith('```')) {
-        cleanText =
-            cleanText.substring(0, cleanText.length - 3).trim();
-      }
-
-      // ========================================================
-      // Decode + validate
-      // ========================================================
-
-      final decoded = jsonDecode(cleanText);
-
-      if (decoded is! Map<String, dynamic>) {
-        throw Exception('Invalid response format from Gemini.');
-      }
 
       if (!decoded.containsKey('careers')) {
         throw Exception(
           'AI response does not contain career recommendations.',
         );
       }
+
       if (!decoded.containsKey('strengths')) {
-        throw Exception('AI response does not contain strengths.');
+        throw Exception(
+          'AI response does not contain strengths.',
+        );
       }
+
       if (!decoded.containsKey('actionPlan')) {
-        throw Exception('AI response does not contain an action plan.');
+        throw Exception(
+          'AI response does not contain an action plan.',
+        );
       }
 
       final careers = decoded['careers'];
+
       if (careers is! List || careers.length != 3) {
         throw Exception(
           'AI response must contain exactly 3 career recommendations.',
         );
       }
 
+      if (decoded['strengths'] is! List ||
+          decoded['actionPlan'] is! List) {
+        throw Exception(
+          'Invalid strengths or action plan format.',
+        );
+      }
+
+      for (final career in careers) {
+        if (career is! Map ||
+            career['title'] is! String ||
+            career['whySuitable'] is! String ||
+            career['skillsToDevelop'] is! List ||
+            career['learningAreas'] is! List ||
+            career['technologies'] is! List) {
+          throw Exception(
+            'A career recommendation has an invalid structure.',
+          );
+        }
+      }
+
       return decoded;
-    } on FormatException {
+    } on TimeoutException {
       throw Exception(
-        'Gemini returned invalid JSON. Please try again.',
+        'The AI took too long to respond. Please try again.',
+      );
+    } on http.ClientException {
+      throw Exception(
+        'Cannot connect to the AI service. Check your internet.',
       );
     } catch (e) {
       throw Exception(
-        'Failed to generate career recommendation: $e',
+        e.toString().replaceFirst('Exception: ', ''),
       );
     }
   }
 
   // ==========================================================
-  // Save Career Recommendation
+  // Gemini REST API
+  // ==========================================================
+
+  Future<Map<String, dynamic>> _askGeminiJson(
+      String prompt, {
+        double temperature = 0.5,
+        int maxOutputTokens = 2048,
+      }) async {
+    final uri = Uri.parse(
+      '$_baseUrl/$_model:generateContent',
+    );
+
+    final response = await http
+        .post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': _apiKey,
+      },
+      body: jsonEncode({
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [
+              {'text': prompt},
+            ],
+          },
+        ],
+        'generationConfig': {
+          'responseMimeType': 'application/json',
+          'temperature': temperature,
+          'maxOutputTokens': maxOutputTokens,
+        },
+      }),
+    )
+        .timeout(const Duration(seconds: 90));
+
+    Map<String, dynamic> data;
+
+    try {
+      final parsed = jsonDecode(response.body);
+
+      data = parsed is Map<String, dynamic>
+          ? parsed
+          : <String, dynamic>{};
+    } on FormatException {
+      throw Exception(
+        'Gemini returned an invalid response.',
+      );
+    }
+
+    if (response.statusCode == 429) {
+      throw Exception(
+        'AI quota has been reached. Please try again later.',
+      );
+    }
+
+    if (response.statusCode != 200) {
+      final error = data['error'];
+
+      final message = error is Map
+          ? error['message']?.toString()
+          : null;
+
+      throw Exception(
+        message ?? 'The AI service is unavailable.',
+      );
+    }
+
+    final candidates = data['candidates'];
+
+    dynamic parts;
+
+    if (candidates is List && candidates.isNotEmpty) {
+      final candidate = candidates.first;
+
+      if (candidate is Map) {
+        final content = candidate['content'];
+
+        if (content is Map) {
+          parts = content['parts'];
+        }
+      }
+    }
+
+    final text = parts is List
+        ? parts
+        .whereType<Map>()
+        .map((part) => part['text']?.toString() ?? '')
+        .join()
+        .trim()
+        : '';
+
+    if (text.isEmpty) {
+      throw Exception(
+        'Gemini returned an empty response.',
+      );
+    }
+
+    final clean = text
+        .replaceFirst(
+      RegExp(r'^```json\s*', caseSensitive: false),
+      '',
+    )
+        .replaceFirst(
+      RegExp(r'^```\s*'),
+      '',
+    )
+        .replaceFirst(
+      RegExp(r'\s*```$'),
+      '',
+    )
+        .trim();
+
+    try {
+      final result = jsonDecode(clean);
+
+      if (result is! Map<String, dynamic>) {
+        throw const FormatException();
+      }
+
+      return result;
+    } on FormatException {
+      throw Exception(
+        'Gemini returned invalid JSON. Please try again.',
+      );
+    }
+  }
+
+  // ==========================================================
+  // Save Career Recommendation to Firestore
   // ==========================================================
 
   Future<void> saveCareerRecommendation({
@@ -231,6 +311,19 @@ RULES:
     required String careerGoal,
     required String recommendation,
   }) async {
+    final currentUser =
+        FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      throw Exception('Please login first.');
+    }
+
+    if (currentUser.uid != userId) {
+      throw Exception(
+        'You cannot save recommendations for another user.',
+      );
+    }
+
     await FirebaseFirestore.instance
         .collection('career_recommendations')
         .add({

@@ -28,6 +28,7 @@ class NotificationTypes {
 
   // ---- Employer / publisher -----------------------------------------
   static const String newApplication = 'new_application';
+  static const String cancelRequest = 'cancel_request';
   static const String jobApproved = 'job_approved';
   static const String jobRejected = 'job_rejected';
 
